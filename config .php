@@ -11,11 +11,11 @@ date_default_timezone_set('Europe/Paris');
 
 // ==================== SUPABASE DATABASE ====================
 
-define('DB_HOST', 'db.gfwbtyjzpwvbwpxipdap.supabase.co');
-define('DB_NAME', 'postgres');
-define('DB_USER', 'postgres');
-define('DB_PASS', 'ghadaa2004+12+25'); // ← password Supabase
-define('DB_PORT', 5432);
+$host = "aws-1-eu-west-2.pooler.supabase.com";
+$dbname = "postgres";
+$user = "postgres.gfwbtyjzpwvbwpxipdap";
+$password = "ghadaa2004+12+25";
+$port = "6543";
 
 // ==================== APPLICATION ====================
 
