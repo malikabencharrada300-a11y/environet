@@ -14,7 +14,7 @@ date_default_timezone_set('Europe/Paris');
 define('DB_HOST', 'db.gfwbtyjzpwvbwpxipdap.supabase.co');
 define('DB_NAME', 'postgres');
 define('DB_USER', 'postgres');
-define('DB_PASS', 'ghada2004+12+25'); // ← password Supabase
+define('DB_PASS', 'ghadaa2004+12+25'); // ← password Supabase
 define('DB_PORT', 5432);
 
 // ==================== APPLICATION ====================
