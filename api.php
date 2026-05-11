@@ -21,13 +21,13 @@ function response($status, $message, $data = null)
 
 try {
 
-    $pdo = getDBConnection();
+  $pdo = new PDO(
+    "pgsql:host=$host;port=$port;dbname=$dbname",
+    $user,
+    $password
+);
 
-    if (!$pdo) {
-        response("error", "Database connection failed");
-    }
-
-    $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+$pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
 
 } catch (Exception $e) {
 
