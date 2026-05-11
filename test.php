@@ -3,7 +3,7 @@
 $host = "aws-0-eu-west-2.pooler.supabase.com";
 $dbname = "postgres";
 $user = "postgres.gfwbtyjzpwvbwpxipdap";
-$password = "MET_ICI_TON_PASSWORD";
+$password = "ghadaa2004+12+25";
 $port = "6543";
 
 try {
