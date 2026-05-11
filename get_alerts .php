@@ -3,7 +3,7 @@ require_once 'config.php';
 header('Content-Type: application/json');
 
 $user_id = isset($_GET['user_id']) ? intval($_GET['user_id']) : 1;
-
+ 
 try {
     $pdo = getDBConnection();
     if (!$pdo) {
