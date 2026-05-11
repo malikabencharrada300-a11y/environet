@@ -3,7 +3,11 @@
 header("Content-Type: application/json; charset=UTF-8");
 header("Access-Control-Allow-Origin: *");
 
-require_once "config.php";
+$host = "aws-1-eu-west-2.pooler.supabase.com";
+$dbname = "postgres";
+$user = "postgres.gfwbtyjzpwvbwpxipdap";
+$password = "ghadaa2004+12+25";
+$port = "6543";
 
 function response($status, $message, $data = null)
 {
