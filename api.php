@@ -352,6 +352,13 @@ elseif ($action === "alerts") {
         "Alerts loaded",
         $alerts
     );
+        echo json_encode([
+        "status" => "success",
+        "message" => "Alerts loaded",
+        "data" => $alerts
+    ]);
+    exit;
+}
 }
 
 //
