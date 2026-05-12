@@ -379,7 +379,12 @@ elseif ($action === "insertSensor") {
     }
 
     $stmt = $pdo->prepare("
-        INSERT INTO sensor_data(user_id, temperature, humidity, timestamp)
+        INSERT INTO sensor_data(
+            user_id,
+            temperature,
+            humidity,
+            timestamp
+        )
         VALUES(1,?,?,NOW())
     ");
 
@@ -390,29 +395,44 @@ elseif ($action === "insertSensor") {
 
         $stmtAlert = $pdo->prepare("
             INSERT INTO alerts(
+                type,
                 message,
                 severity,
                 location,
                 status,
                 created_at
             )
-            VALUES(?,?,?,?,NOW())
+            VALUES(?,?,?,?,?,NOW())
         ");
 
-        // Temp
-        $sev = ($temp >= 35) ? "critical" : (($temp >= 25) ? "warning" : "info");
+        // ================= TEMPERATURE =================
+        if ($temp >= 35) {
+            $sev = "critical";
+        } elseif ($temp >= 25) {
+            $sev = "warning";
+        } else {
+            $sev = "info";
+        }
 
         $stmtAlert->execute([
+            "temperature",
             "Temperature: " . $temp . "°C",
             $sev,
             "ESP32 Room",
             "active"
         ]);
 
-        // Humidity
-        $sev = ($hum >= 80) ? "critical" : (($hum >= 65) ? "warning" : "info");
+        // ================= HUMIDITY =================
+        if ($hum >= 80) {
+            $sev = "critical";
+        } elseif ($hum >= 65) {
+            $sev = "warning";
+        } else {
+            $sev = "info";
+        }
 
         $stmtAlert->execute([
+            "humidity",
             "Humidity: " . $hum . "%",
             $sev,
             "ESP32 Room",
@@ -420,9 +440,11 @@ elseif ($action === "insertSensor") {
         ]);
 
         response("success", "Inserted");
-    }
 
-    response("error", "Insert failed");
+    } else {
+
+        response("error", "Insert failed");
+    }
 }
 // =====================================================
 // NETWORK DATA
