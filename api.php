@@ -47,10 +47,16 @@ if ($action == '') {
 //
 if ($action === "login") {
 
-    $email = $_POST['email'] ?? '';
-    $password = $_POST['password'] ?? '';
+    $input = json_decode(file_get_contents("php://input"), true);
 
-    $stmt = $pdo->prepare("SELECT * FROM users WHERE email=? LIMIT 1");
+    $email = trim(strtolower($input['email'] ?? ''));
+    $password = trim($input['password'] ?? '');
+
+    if (empty($email) || empty($password)) {
+        response("error", "Email and password required");
+    }
+
+    $stmt = $pdo->prepare("SELECT * FROM users WHERE LOWER(email)=LOWER(?) LIMIT 1");
     $stmt->execute([$email]);
 
     $user = $stmt->fetch(PDO::FETCH_ASSOC);
@@ -66,14 +72,19 @@ if ($action === "login") {
 
         unset($user['password']);
 
-        response("success", "Login success", $user);
+        echo json_encode([
+            "status" => "success",
+            "message" => "Login success",
+            "user_id" => $user['id'],
+            "name" => $user['name'],
+            "email" => $user['email']
+        ]);
+        exit;
 
     } else {
-
         response("error", "Wrong password");
     }
 }
-
 //
 // ================= REGISTER =================
 //
