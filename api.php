@@ -246,6 +246,7 @@ elseif ($action === "history") {
         )
 
         ORDER BY s.id DESC
+         LIMIT 100
     ");
 
     $stmt->execute();
