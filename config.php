@@ -292,7 +292,7 @@ function isLoggedIn()
 function requireLogin()
 {
     if (!isLoggedIn()) {
-        header("Location: index.php");
+        header("Location: index.html");
         exit;
     }
 }
