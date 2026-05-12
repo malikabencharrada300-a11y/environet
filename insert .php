@@ -2,7 +2,7 @@
 require_once 'config.php';
 header('Content-Type: application/json');
 
-// ID utilisateur par défaut
+// ID utilisateur par défaut 
 $user_id = 1;
 
 // Lire le contenu JSON envoyé
