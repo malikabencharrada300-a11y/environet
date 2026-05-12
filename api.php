@@ -441,6 +441,44 @@ elseif ($action === "insertSensor") {
             "active"
         ]);
 
+        // ================= SIGNAL =================
+        $stmtNet = $pdo->prepare("
+            SELECT signal_strength
+            FROM esp32_cam_data
+            ORDER BY id DESC
+            LIMIT 1
+        ");
+
+        $stmtNet->execute();
+
+        $net = $stmtNet->fetch(PDO::FETCH_ASSOC);
+
+        $rssi = intval($net["signal_strength"] ?? -50);
+
+        if ($rssi <= -100) {
+            $signal = 0;
+        } elseif ($rssi >= -50) {
+            $signal = 100;
+        } else {
+            $signal = 2 * ($rssi + 100);
+        }
+
+        if ($signal <= 20) {
+            $sev = "critical";
+        } elseif ($signal <= 50) {
+            $sev = "warning";
+        } else {
+            $sev = "info";
+        }
+
+        $stmtAlert->execute([
+            "signal",
+            "Signal: " . $signal . "%",
+            $sev,
+            "ESP32 Room",
+            "active"
+        ]);
+
         response("success", "Inserted");
 
     } else {
