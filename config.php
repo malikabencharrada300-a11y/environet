@@ -23,6 +23,24 @@ define('APP_VERSION', '1.0.0');
 define('APP_TIMEZONE', 'Europe/Paris');
 define('APP_ROOT', __DIR__);
 
+// ==================== ALERT THRESHOLDS ====================
+
+// Température (°C)
+define('DEFAULT_TEMP_WARNING_LOW', 18);
+define('DEFAULT_TEMP_WARNING_HIGH', 30);
+define('DEFAULT_TEMP_CRITICAL_LOW', 10);
+define('DEFAULT_TEMP_CRITICAL_HIGH', 35);
+
+// Humidité (%)
+define('DEFAULT_HUM_WARNING_LOW', 30);
+define('DEFAULT_HUM_WARNING_HIGH', 70);
+define('DEFAULT_HUM_CRITICAL_LOW', 20);
+define('DEFAULT_HUM_CRITICAL_HIGH', 80);
+
+// Signal WiFi (%)
+define('DEFAULT_SIGNAL_WARNING', 40);
+define('DEFAULT_SIGNAL_CRITICAL', 20);
+
 // ==================== PDO CONNECTION ====================
 
 $pdo = null;
