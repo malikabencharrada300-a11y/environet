@@ -191,7 +191,7 @@ elseif ($action === "alerts") {
     $stmt = $pdo->prepare("
         SELECT
             message,
-            level,
+            severity,
             location,
             created_at
         FROM alerts
@@ -203,11 +203,19 @@ elseif ($action === "alerts") {
 
     $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
-    response(
-        "success",
-        "Alerts loaded",
-        $rows
-    );
+    $data = [];
+
+    foreach ($rows as $row) {
+
+        $data[] = [
+            "message" => $row["message"],
+            "level" => $row["severity"],   // Android attend 'level'
+            "location" => $row["location"],
+            "created_at" => $row["created_at"]
+        ];
+    }
+
+    response("success", "Alerts loaded", $data);
 }
 
 //
@@ -371,12 +379,7 @@ elseif ($action === "insertSensor") {
     }
 
     $stmt = $pdo->prepare("
-        INSERT INTO sensor_data(
-            user_id,
-            temperature,
-            humidity,
-            timestamp
-        )
+        INSERT INTO sensor_data(user_id, temperature, humidity, timestamp)
         VALUES(1,?,?,NOW())
     ");
 
@@ -388,51 +391,39 @@ elseif ($action === "insertSensor") {
         $stmtAlert = $pdo->prepare("
             INSERT INTO alerts(
                 message,
-                level,
+                severity,
                 location,
+                status,
                 created_at
             )
-            VALUES(?,?,?,NOW())
+            VALUES(?,?,?,?,NOW())
         ");
 
-        // ================= TEMPERATURE =================
-        if ($temp >= 35) {
-            $level = "critical";
-        } elseif ($temp >= 25) {
-            $level = "warning";
-        } else {
-            $level = "info";
-        }
+        // Temp
+        $sev = ($temp >= 35) ? "critical" : (($temp >= 25) ? "warning" : "info");
 
         $stmtAlert->execute([
             "Temperature: " . $temp . "°C",
-            $level,
-            "ESP32 Room"
+            $sev,
+            "ESP32 Room",
+            "active"
         ]);
 
-        // ================= HUMIDITY =================
-        if ($hum >= 80) {
-            $level = "critical";
-        } elseif ($hum >= 65) {
-            $level = "warning";
-        } else {
-            $level = "info";
-        }
+        // Humidity
+        $sev = ($hum >= 80) ? "critical" : (($hum >= 65) ? "warning" : "info");
 
         $stmtAlert->execute([
             "Humidity: " . $hum . "%",
-            $level,
-            "ESP32 Room"
+            $sev,
+            "ESP32 Room",
+            "active"
         ]);
 
         response("success", "Inserted");
-
-    } else {
-
-        response("error", "Insert failed");
     }
-}
 
+    response("error", "Insert failed");
+}
 // =====================================================
 // NETWORK DATA
 // =====================================================
