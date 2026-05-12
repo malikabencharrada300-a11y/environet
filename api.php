@@ -352,12 +352,7 @@ elseif ($action === "alerts") {
         "Alerts loaded",
         $alerts
     );
-        echo json_encode([
-        "status" => "success",
-        "message" => "Alerts loaded",
-        "data" => $alerts
-    ]);
-    exit;
+       
 }
 
 //
@@ -531,14 +526,68 @@ elseif ($action === "insertSensor") {
         VALUES(1,?,?,NOW())
     ");
 
-    if ($stmt->execute([$temperature,$humidity])) {
+   if ($stmt->execute([$temperature,$humidity])) {
 
-        response("success", "Inserted");
+    $temp = floatval($temperature);
+    $hum  = floatval($humidity);
 
-    } else {
-
-        response("error", "Insert failed");
+    // température
+    if ($temp >= 30) {
+        $stmtAlert = $pdo->prepare("
+            INSERT INTO alerts(message, level, location, created_at)
+            VALUES(?,?,?,NOW())
+        ");
+        $stmtAlert->execute([
+            "Temperature reached " . $temp . "°C",
+            "critical",
+            "ESP32 Room"
+        ]);
     }
+
+    elseif ($temp >= 25) {
+        $stmtAlert = $pdo->prepare("
+            INSERT INTO alerts(message, level, location, created_at)
+            VALUES(?,?,?,NOW())
+        ");
+        $stmtAlert->execute([
+            "Temperature warning " . $temp . "°C",
+            "warning",
+            "ESP32 Room"
+        ]);
+    }
+
+    // humidité
+    if ($hum >= 80) {
+        $stmtAlert = $pdo->prepare("
+            INSERT INTO alerts(message, level, location, created_at)
+            VALUES(?,?,?,NOW())
+        ");
+        $stmtAlert->execute([
+            "Humidity reached " . $hum . "%",
+            "critical",
+            "ESP32 Room"
+        ]);
+    }
+
+    elseif ($hum >= 65) {
+        $stmtAlert = $pdo->prepare("
+            INSERT INTO alerts(message, level, location, created_at)
+            VALUES(?,?,?,NOW())
+        ");
+        $stmtAlert->execute([
+            "Humidity warning " . $hum . "%",
+            "warning",
+            "ESP32 Room"
+        ]);
+    }
+
+    response("success", "Inserted");
+
+ else {
+
+    response("error", "Insert failed");
+}
+}
 }
 
 // =====================================================
