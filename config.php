@@ -29,7 +29,7 @@ $pdo = null;
 
 function getDBConnection()
 {
-    global $pdo, $host, $dbname, $user, $password, $port;
+    global $pdo;
 
     if ($pdo !== null) {
         return $pdo;
@@ -37,12 +37,12 @@ function getDBConnection()
 
     try {
 
-        $dsn = "pgsql:host=$host;port=$port;dbname=$dbname";
+        $dsn = "pgsql:host=" . DB_HOST . ";port=" . DB_PORT . ";dbname=" . DB_NAME;
 
         $pdo = new PDO(
             $dsn,
-            $user,
-            $password,
+            DB_USER,
+            DB_PASS,
             [
                 PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
                 PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
@@ -52,15 +52,8 @@ function getDBConnection()
         return $pdo;
 
     } catch (PDOException $e) {
-
-        error_log("Database Error: " . $e->getMessage());
-
-        header('Content-Type: application/json');
-
-        die(json_encode([
-            "success" => false,
-            "message" => "Database connection failed"
-        ]));
+        error_log($e->getMessage());
+        die("DB failed");
     }
 }
 
@@ -287,5 +280,21 @@ if ($pdo) {
 
 }
 */
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
+}
+
+function isLoggedIn()
+{
+    return isset($_SESSION['user_id']);
+}
+
+function requireLogin()
+{
+    if (!isLoggedIn()) {
+        header("Location: index.php");
+        exit;
+    }
+}
 
 ?>
