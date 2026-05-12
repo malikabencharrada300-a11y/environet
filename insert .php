@@ -1,5 +1,10 @@
 <?php
-require_once 'config.php';
+$host = "aws-1-eu-west-2.pooler.supabase.com"; 
+$dbname = "postgres";
+$user = "postgres.gfwbtyjzpwvbwpxipdap";
+$password = "ghadaa2004+12+25";
+$port = "6543";
+
 header('Content-Type: application/json');
 
 // ID utilisateur par défaut 
