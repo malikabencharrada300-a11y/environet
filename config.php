@@ -2,25 +2,26 @@
 
 // ==================== CONFIGURATION ====================
 
+
 error_reporting(E_ALL);
 ini_set('display_errors', 1);
-ini_set('log_errors', 1); 
+ini_set('log_errors', 1);
 ini_set('error_log', __DIR__ . '/error.log');
 
-date_default_timezone_set('Europe/Paris');
+// ==================== SUPABASE POSTGRES ====================
 
-// ==================== SUPABASE DATABASE ====================
+define('DB_HOST', 'aws-1-eu-west-2.pooler.supabase.com');
+define('DB_NAME', 'postgres');
+define('DB_USER', 'postgres.gfwbtyjzpwvbwpxipdap');
+define('DB_PASS', 'ghadaa2004+12+25'); // remplace si tu changes le mot de passe
+define('DB_PORT', '6543');
 
-$host = "aws-1-eu-west-2.pooler.supabase.com";
-$dbname = "postgres";
-$user = "postgres.gfwbtyjzpwvbwpxipdap";
-$password = "ghadaa2004+12+25";
-$port = "6543";
-
-// ==================== APPLICATION ====================
+// ==================== APP ====================
 
 define('APP_NAME', 'EnviroNet');
 define('APP_VERSION', '1.0.0');
+define('APP_TIMEZONE', 'Europe/Paris');
+define('APP_ROOT', __DIR__);
 
 // ==================== PDO CONNECTION ====================
 
@@ -28,7 +29,7 @@ $pdo = null;
 
 function getDBConnection()
 {
-    global $pdo;
+    global $pdo, $host, $dbname, $user, $password, $port;
 
     if ($pdo !== null) {
         return $pdo;
@@ -36,14 +37,12 @@ function getDBConnection()
 
     try {
 
-        $dsn = "pgsql:host=" . DB_HOST .
-               ";port=" . DB_PORT .
-               ";dbname=" . DB_NAME;
+        $dsn = "pgsql:host=$host;port=$port;dbname=$dbname";
 
         $pdo = new PDO(
             $dsn,
-            DB_USER,
-            DB_PASS,
+            $user,
+            $password,
             [
                 PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
                 PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
