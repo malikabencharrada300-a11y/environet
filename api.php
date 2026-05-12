@@ -108,6 +108,81 @@ elseif ($action === "register") {
 }
 
 //
+//==========forgot password==========//
+//
+elseif ($action === "forgot_password") {
+
+    $input = json_decode(file_get_contents("php://input"), true);
+    $email = trim($input["email"] ?? "");
+
+    if ($email == "") {
+        response("error", "Email required");
+    }
+
+    $stmt = $pdo->prepare("SELECT id FROM users WHERE email=? LIMIT 1");
+    $stmt->execute([$email]);
+
+    if ($stmt->rowCount() == 0) {
+        response("error", "Email not found");
+    }
+
+    $code = rand(1000, 9999);
+    $expires = date("Y-m-d H:i:s", strtotime("+10 minutes"));
+
+    $pdo->prepare("DELETE FROM password_resets WHERE email=?")
+        ->execute([$email]);
+
+    $stmt = $pdo->prepare("
+        INSERT INTO password_resets(email, token, expires_at, created_at)
+        VALUES (?, ?, ?, NOW())
+    ");
+
+    $stmt->execute([$email, $code, $expires]);
+
+    mail(
+        $email,
+        "Environet Reset Code",
+        "Your code: ".$code,
+        "From: no-reply@environet.com"
+    );
+
+    response("success", "Code sent");
+}
+//
+//=========vrify reset code==========//
+//
+elseif ($action === "verify_reset_code") {
+
+    $input = json_decode(file_get_contents("php://input"), true);
+
+    $email = trim($input["email"] ?? "");
+    $code = trim($input["code"] ?? "");
+    $new_password = trim($input["new_password"] ?? "");
+
+    $stmt = $pdo->prepare("
+    SELECT id
+    FROM password_resets
+    WHERE email=? AND token=? AND expires_at > NOW()
+    LIMIT 1
+    ");
+
+    $stmt->execute([$email, $code]);
+
+    if ($stmt->rowCount() == 0) {
+        response("error", "Wrong code");
+    }
+
+    $hash = password_hash($new_password, PASSWORD_DEFAULT);
+
+    $pdo->prepare("UPDATE users SET password=? WHERE email=?")
+        ->execute([$hash, $email]);
+
+    $pdo->prepare("DELETE FROM password_resets WHERE email=?")
+        ->execute([$email]);
+
+    response("success", "Password changed");
+}
+//
 // ================= SENSOR =================
 //
 elseif ($action === "sensor") {
