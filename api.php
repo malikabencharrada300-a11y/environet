@@ -28,6 +28,8 @@ try {
 );
 
 $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+   
+    $pdo->exec("SET TIME ZONE 'Africa/Tunis'");
 
 } catch (Exception $e) {
 
