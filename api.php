@@ -79,14 +79,20 @@ if ($action === "login") {
 //
 elseif ($action === "register") {
 
-    $name = $_POST['name'] ?? '';
-    $email = $_POST['email'] ?? '';
-    $password = $_POST['password'] ?? '';
+    $input = json_decode(file_get_contents("php://input"), true);
 
-    $check = $pdo->prepare("SELECT id FROM users WHERE email=?");
+    $name = trim($input['name'] ?? '');
+    $email = trim(strtolower($input['email'] ?? ''));
+    $password = trim($input['password'] ?? '');
+
+    if (empty($name) || empty($email) || empty($password)) {
+        response("error", "All fields required");
+    }
+
+    $check = $pdo->prepare("SELECT id FROM users WHERE LOWER(email)=LOWER(?)");
     $check->execute([$email]);
 
-    if ($check->rowCount() > 0) {
+    if ($check->fetch()) {
         response("error", "Email already exists");
     }
 
@@ -97,12 +103,9 @@ elseif ($action === "register") {
         VALUES(?,?,?)
     ");
 
-    if ($stmt->execute([$name,$email,$hash])) {
-
+    if ($stmt->execute([$name, $email, $hash])) {
         response("success", "User registered");
-
     } else {
-
         response("error", "Register failed");
     }
 }
