@@ -186,20 +186,14 @@ elseif ($action === "network") {
 //
 // ================= ALERTS =================
 //
-//
-// ================= ALERTS =================
-//
 elseif ($action === "alerts") {
-
+    
     $stmt = $pdo->prepare("
         SELECT
             s.temperature,
             s.humidity,
             s.timestamp,
-
-            n.signal_strength,
-            n.bandwidth,
-            n.ping
+            n.signal_strength
 
         FROM sensor_data s
 
@@ -212,6 +206,7 @@ elseif ($action === "alerts") {
         )
 
         ORDER BY s.id DESC
+        LIMIT 20
     ");
 
     $stmt->execute();
@@ -222,137 +217,73 @@ elseif ($action === "alerts") {
 
     foreach ($rows as $row) {
 
-        $temperature =
-                floatval($row["temperature"]);
-
-        $humidity =
-                floatval($row["humidity"]);
+        $temperature = floatval($row["temperature"]);
+        $humidity    = floatval($row["humidity"]);
+        $timestamp   = $row["timestamp"];
 
         $rssi = isset($row["signal_strength"])
-                ? intval($row["signal_strength"])
-                : -50;
+            ? intval($row["signal_strength"])
+            : -50;
 
-        // RSSI -> %
+        // convert RSSI -> %
         if ($rssi <= -100) {
-
             $signal = 0;
-
         } elseif ($rssi >= -50) {
-
             $signal = 100;
-
         } else {
-
             $signal = 2 * ($rssi + 100);
         }
 
-        $timestamp = $row["timestamp"];
-
         // ================= TEMPERATURE =================
-
-        if ($temperature >= 30) {
-
-            $alerts[] = [
-
-                "message" =>
-                        "Temperature reached "
-                        . $temperature . "°C",
-
-                "level" => "critical",
-
-                "location" => "ESP32 Room",
-
-                "created_at" => $timestamp
-            ];
-
+        if ($temperature >= 35) {
+            $level = "critical";
         } elseif ($temperature >= 25) {
-
-            $alerts[] = [
-
-                "message" =>
-                        "Temperature is "
-                        . $temperature . "°C",
-
-                "level" => "warning",
-
-                "location" => "ESP32 Room",
-
-                "created_at" => $timestamp
-            ];
+            $level = "warning";
+        } else {
+            $level = "info";
         }
+
+        $alerts[] = [
+            "message" => "Temperature: " . $temperature . "°C",
+            "level" => $level,
+            "location" => "ESP32 Room",
+            "created_at" => $timestamp
+        ];
 
         // ================= HUMIDITY =================
-
         if ($humidity >= 80) {
-
-            $alerts[] = [
-
-                "message" =>
-                        "Humidity reached "
-                        . $humidity . "%",
-
-                "level" => "critical",
-
-                "location" => "ESP32 Room",
-
-                "created_at" => $timestamp
-            ];
-
+            $level = "critical";
         } elseif ($humidity >= 65) {
-
-            $alerts[] = [
-
-                "message" =>
-                        "Humidity is "
-                        . $humidity . "%",
-
-                "level" => "warning",
-
-                "location" => "ESP32 Room",
-
-                "created_at" => $timestamp
-            ];
+            $level = "warning";
+        } else {
+            $level = "info";
         }
 
-        // ================= WIFI SIGNAL =================
+        $alerts[] = [
+            "message" => "Humidity: " . $humidity . "%",
+            "level" => $level,
+            "location" => "ESP32 Room",
+            "created_at" => $timestamp
+        ];
 
+        // ================= SIGNAL =================
         if ($signal <= 20) {
-
-            $alerts[] = [
-
-                "message" =>
-                        "Signal dropped to "
-                        . $signal . "%",
-
-                "level" => "critical",
-
-                "location" => "ESP32 Room",
-                "created_at" => $timestamp
-            ];
-
+            $level = "critical";
         } elseif ($signal <= 50) {
-
-            $alerts[] = [
-
-                "message" =>
-                        "Signal is "
-                        . $signal . "%",
-
-                "level" => "warning",
-
-                "location" => "ESP32 Room",
-
-                "created_at" => $timestamp
-            ];
+            $level = "warning";
+        } else {
+            $level = "info";
         }
+
+        $alerts[] = [
+            "message" => "Signal: " . $signal . "%",
+            "level" => $level,
+            "location" => "ESP32 Room",
+            "created_at" => $timestamp
+        ];
     }
 
-    response(
-        "success",
-        "Alerts loaded",
-        $alerts
-    );
-       
+    response("success", "Alerts loaded", $alerts);
 }
 
 //
