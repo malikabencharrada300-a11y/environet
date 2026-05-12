@@ -310,6 +310,76 @@ elseif ($action === "history") {
         $data
     );
 }
+//
+//=========exported csv==========//
+//
+elseif ($action === "export_csv") {
+
+    header("Content-Type: text/csv; charset=UTF-8");
+    header("Content-Disposition: attachment; filename=history.csv");
+
+    $output = fopen("php://output", "w");
+
+    fputcsv($output, [
+        "Date",
+        "Temperature",
+        "Humidity",
+        "Signal",
+        "Bandwidth",
+        "Ping",
+        "Status"
+    ]);
+
+    $stmt = $pdo->prepare("
+        SELECT
+            s.temperature,
+            s.humidity,
+            s.timestamp,
+            n.signal_strength,
+            n.bandwidth,
+            n.ping
+        FROM sensor_data s
+        LEFT JOIN esp32_cam_data n
+        ON n.id = (
+            SELECT id FROM esp32_cam_data
+            ORDER BY id DESC
+            LIMIT 1
+        )
+        ORDER BY s.id DESC
+        LIMIT 100
+    ");
+
+    $stmt->execute();
+    $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+    foreach ($rows as $row) {
+
+        $rssi = intval($row["signal_strength"] ?? -50);
+
+        if ($rssi <= -100) {
+            $signal = 0;
+        } elseif ($rssi >= -50) {
+            $signal = 100;
+        } else {
+            $signal = 2 * ($rssi + 100);
+        }
+
+        $status = ($signal < 30) ? "Weak" : "Online";
+
+        fputcsv($output, [
+            $row["timestamp"],
+            $row["temperature"],
+            $row["humidity"],
+            $signal,
+            $row["bandwidth"],
+            $row["ping"],
+            $status
+        ]);
+    }
+
+    fclose($output);
+    exit;
+}    
 
 //
 // ================= ROOMS =================
