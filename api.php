@@ -506,13 +506,15 @@ elseif ($action === "last_update") {
 //
 // ================= INSERT SENSOR =================
 //
+//
+// ================= INSERT SENSOR =================
+//
 elseif ($action === "insertSensor") {
 
     $temperature = $_GET['temperature'] ?? '';
     $humidity = $_GET['humidity'] ?? '';
 
     if ($temperature == '' || $humidity == '') {
-
         response("error", "Missing values");
     }
 
@@ -526,68 +528,73 @@ elseif ($action === "insertSensor") {
         VALUES(1,?,?,NOW())
     ");
 
-   if ($stmt->execute([$temperature,$humidity])) {
+    if ($stmt->execute([$temperature, $humidity])) {
 
-    $temp = floatval($temperature);
-    $hum  = floatval($humidity);
+        $temp = floatval($temperature);
+        $hum = floatval($humidity);
 
-    // température
-    if ($temp >= 30) {
-        $stmtAlert = $pdo->prepare("
-            INSERT INTO alerts(message, level, location, created_at)
-            VALUES(?,?,?,NOW())
-        ");
-        $stmtAlert->execute([
-            "Temperature reached " . $temp . "°C",
-            "critical",
-            "ESP32 Room"
-        ]);
+        // ================= TEMP ALERT =================
+        if ($temp >= 30) {
+
+            $stmtAlert = $pdo->prepare("
+                INSERT INTO alerts(message, level, location, created_at)
+                VALUES(?,?,?,NOW())
+            ");
+
+            $stmtAlert->execute([
+                "Temperature reached " . $temp . "°C",
+                "critical",
+                "ESP32 Room"
+            ]);
+
+        } elseif ($temp >= 25) {
+
+            $stmtAlert = $pdo->prepare("
+                INSERT INTO alerts(message, level, location, created_at)
+                VALUES(?,?,?,NOW())
+            ");
+
+            $stmtAlert->execute([
+                "Temperature warning " . $temp . "°C",
+                "warning",
+                "ESP32 Room"
+            ]);
+        }
+
+        // ================= HUM ALERT =================
+        if ($hum >= 80) {
+
+            $stmtAlert = $pdo->prepare("
+                INSERT INTO alerts(message, level, location, created_at)
+                VALUES(?,?,?,NOW())
+            ");
+
+            $stmtAlert->execute([
+                "Humidity reached " . $hum . "%",
+                "critical",
+                "ESP32 Room"
+            ]);
+
+        } elseif ($hum >= 65) {
+
+            $stmtAlert = $pdo->prepare("
+                INSERT INTO alerts(message, level, location, created_at)
+                VALUES(?,?,?,NOW())
+            ");
+
+            $stmtAlert->execute([
+                "Humidity warning " . $hum . "%",
+                "warning",
+                "ESP32 Room"
+            ]);
+        }
+
+        response("success", "Inserted");
+
+    } else {
+
+        response("error", "Insert failed");
     }
-
-    elseif ($temp >= 25) {
-        $stmtAlert = $pdo->prepare("
-            INSERT INTO alerts(message, level, location, created_at)
-            VALUES(?,?,?,NOW())
-        ");
-        $stmtAlert->execute([
-            "Temperature warning " . $temp . "°C",
-            "warning",
-            "ESP32 Room"
-        ]);
-    }
-
-    // humidité
-    if ($hum >= 80) {
-        $stmtAlert = $pdo->prepare("
-            INSERT INTO alerts(message, level, location, created_at)
-            VALUES(?,?,?,NOW())
-        ");
-        $stmtAlert->execute([
-            "Humidity reached " . $hum . "%",
-            "critical",
-            "ESP32 Room"
-        ]);
-    }
-
-    elseif ($hum >= 65) {
-        $stmtAlert = $pdo->prepare("
-            INSERT INTO alerts(message, level, location, created_at)
-            VALUES(?,?,?,NOW())
-        ");
-        $stmtAlert->execute([
-            "Humidity warning " . $hum . "%",
-            "warning",
-            "ESP32 Room"
-        ]);
-    }
-
-    response("success", "Inserted");
-
- else {
-
-    response("error", "Insert failed");
-}
-}
 }
 
 // =====================================================
