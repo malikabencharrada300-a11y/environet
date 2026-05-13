@@ -349,4 +349,29 @@ function addRoom($user_id, $room_name, $location)
     }
 }
 
+define('REMEMBER_TOKEN_EXPIRY', 30);
+
+function createRememberToken($user_id)
+{
+    $pdo = getDBConnection();
+
+    try {
+        $token = bin2hex(random_bytes(32));
+        $expiry = date('Y-m-d H:i:s', strtotime('+30 days'));
+
+        $stmt = $pdo->prepare("
+            INSERT INTO remember_tokens (user_id, token, expires_at)
+            VALUES (?, ?, ?)
+        ");
+
+        $stmt->execute([$user_id, $token, $expiry]);
+
+        return $token;
+
+    } catch (PDOException $e) {
+        error_log($e->getMessage());
+        return false;
+    }
+}
+
 ?>
