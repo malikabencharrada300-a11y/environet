@@ -18,26 +18,25 @@ try {
     }
 
     // Déterminer la période
-    switch ($period) {
-        case '24h':
-            $interval = '24 HOUR';
-            break;
-        case '7d':
-            $interval = '7 DAY';
-            break;
-        case '30d':
-            $interval = '30 DAY';
-            break;
-        default:
-            $interval = '24 HOUR';
-    }
+  switch ($period) {
+    case '24h':
+        $interval = '24 hours';
+        break;
+    case '7d':
+        $interval = '7 days';
+        break;
+    case '30d':
+        $interval = '30 days';
+        break;
+    default:
+        $interval = '24 hours';
+}
 
-    // Utiliser sensor_data pour l'historique
-   $stmt = $pdo->prepare("
-    SELECT temperature, humidity, signal_strength, bandwidth, created_at
+$stmt = $pdo->prepare("
+    SELECT temperature, humidity, signal_strength, bandwidth, ping, timestamp
     FROM sensor_data
-    WHERE created_at >= DATE_SUB(NOW(), INTERVAL $interval)
-    ORDER BY created_at DESC
+    WHERE timestamp >= NOW() - INTERVAL '$interval'
+    ORDER BY timestamp DESC
 ");
 $stmt->execute();
     $history = $stmt->fetchAll();
