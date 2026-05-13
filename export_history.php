@@ -38,14 +38,10 @@ try {
         ob_end_clean();
     }
 
-    header("Content-Type: application/vnd.ms-excel; charset=UTF-8");
-    header("Content-Disposition: attachment; filename=history_export_" . date("Y-m-d_H-i-s") . ".xls");
-    header("Pragma: no-cache");
-    header("Expires: 0");
+   header("Content-Type: text/csv; charset=UTF-8");
+header("Content-Disposition: attachment; filename=history_export_" . date("Y-m-d_H-i-s") . ".csv");
 
-    echo "\xEF\xBB\xBF";
-
-    echo "Date\tTemperature\tHumidity\tSignal\tBandwidth\tPing\tStatus\n";
+echo "Date;Temperature;Humidity;Signal;Bandwidth;Ping;Status\n";
 
     foreach ($rows as $row) {
 
@@ -57,13 +53,13 @@ try {
             $status = "Warning";
         }
 
-        echo date('d/m/Y H:i:s', strtotime($row['timestamp'])) . "\t";
-        echo ($row['temperature'] ?? '--') . "\t";
-        echo ($row['humidity'] ?? '--') . "\t";
-        echo ($row['signal_strength'] ?? '--') . "\t";
-        echo ($row['bandwidth'] ?? '--') . "\t";
-        echo ($row['ping'] ?? '--') . "\t";
-        echo $status . "\n";
+        echo date('d/m/Y H:i:s', strtotime($row['timestamp'])) . ";";
+echo ($row['temperature'] ?? '--') . ";";
+echo ($row['humidity'] ?? '--') . ";";
+echo ($row['signal_strength'] ?? '--') . ";";
+echo ($row['bandwidth'] ?? '--') . ";";
+echo ($row['ping'] ?? '--') . ";";
+echo $status . "\n";
     }
 
     exit;
