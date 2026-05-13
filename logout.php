@@ -33,6 +33,6 @@ if (isset($_COOKIE['remember_token'])) {
 session_destroy();
 
 // Rediriger vers la page de connexion
-header('Location: index.html');
+header('Location: index.php');
 exit;
 ?>
