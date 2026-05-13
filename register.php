@@ -42,7 +42,7 @@ try {
     
     $userId = $pdo->lastInsertId();
 
-// addRoom($userId, 'Main Room', 'ESP32-CAM Location');
+    addRoom($userId, 'Main Room', 'ESP32-CAM Location');
 
 jsonResponse(true, 'Compte créé avec succès');
 exit;
