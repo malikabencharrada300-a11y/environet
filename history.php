@@ -33,6 +33,7 @@ try {
     SELECT * FROM esp32_cam_data
     WHERE timestamp >= DATE_SUB(NOW(), INTERVAL $interval)
     ORDER BY timestamp DESC
+      LIMIT 50
 ");
 $stmt->execute();
 $historyData = $stmt->fetchAll();
