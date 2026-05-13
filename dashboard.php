@@ -1767,74 +1767,7 @@ function checkAndGenerateAlerts(temp, hum, signal) {
 // ===== FONCTIONS DE NOTIFICATION =====
 
 function showNotification(type, title, message, location) {
-    const container = document.getElementById('notificationContainer');
-    if(!container) return;
-    
-    const notification = document.createElement('div');
-    notification.className = `notification ${type}`;
-    
-    let icon = 'fa-circle-exclamation';
-    if(type === 'warning') icon = 'fa-exclamation-triangle';
-    if(type === 'info') icon = 'fa-info-circle';
-    
-    const now = new Date();
-    const timeStr = now.getHours() + ':' + now.getMinutes().toString().padStart(2, '0');
-    
-    notification.innerHTML = `
-        <div class="notification-icon">
-            <i class="fas ${icon}"></i>
-        </div>
-        <div class="notification-content">
-            <div class="notification-title">${title}</div>
-            <div class="notification-message">${message}</div>
-            <div class="notification-location">
-                <i class="fas fa-map-marker-alt"></i>
-                <span>${location}</span>
-            </div>
-            <div class="notification-time">${timeStr}</div>
-        </div>
-        <div class="notification-close" onclick="this.parentElement.remove();">
-            <i class="fas fa-times"></i>
-        </div>
-    `;
-    
-    container.appendChild(notification);
-    
-    setTimeout(() => {
-        if(notification.parentNode) {
-            notification.remove();
-        }
-    }, 8000);
-}
-
-function showDemoNotifications() {
-    showNotification('info', 'EnviroNet', 'System is operational', 'System');
-}
-
-function showNotificationFromMap(location, type) {
-    let title, message;
-    
-    if(type === 'critical') {
-        title = 'Critical Alert';
-        message = 'High temperature detected';
-    } else if(type === 'warning') {
-        title = 'Warning';
-        message = 'Monitoring recommended';
-    } else {
-        title = 'Information';
-        message = 'System operational';
-    }
-    
-    showNotification(type, title, message, location);
-}
-
-function hideAlertInfo() {
-    const alertInfo = document.getElementById('selectedAlertInfo');
-    if(alertInfo) alertInfo.classList.add('hidden');
-    
-    document.querySelectorAll('.map-marker').forEach(marker => {
-        marker.classList.remove('map-highlight');
-    });
+    return;
 }
 
 // ===== FONCTIONS D'HISTORIQUE =====
