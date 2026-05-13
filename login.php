@@ -29,7 +29,7 @@ try {
         jsonResponse(false, 'Votre compte est désactivé');
     }
     
-    if ($password !== $user['password']) {
+  if (!password_verify($password, $user['password'])) {
     jsonResponse(false, 'Email ou mot de passe incorrect');
 }
     
