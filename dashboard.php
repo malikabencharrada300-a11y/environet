@@ -22,6 +22,10 @@ $user_id = $_SESSION['user_id'];
 // Get latest ESP32-CAM sensor data from insert file (ESP32 data)
 $sensorData = getLatestSensorData($user_id);
 
+echo "<pre>";
+print_r($sensorData);
+echo "</pre>";
+
 // Get network data
 $networkData = null;
 try {
