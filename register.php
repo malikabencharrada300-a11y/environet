@@ -41,9 +41,11 @@ try {
     $stmt->execute([$name, $email, $hashedPassword]);
     
     $userId = $pdo->lastInsertId();
-    addRoom($userId, 'Main Room', 'ESP32-CAM Location');
-    
-    jsonResponse(true, 'Compte créé avec succès');
+
+// addRoom($userId, 'Main Room', 'ESP32-CAM Location');
+
+jsonResponse(true, 'Compte créé avec succès');
+exit;
     
 } catch(PDOException $e) {
     error_log("Erreur register: " . $e->getMessage());
