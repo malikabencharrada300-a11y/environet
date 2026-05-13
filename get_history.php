@@ -37,6 +37,7 @@ $stmt = $pdo->prepare("
     FROM sensor_data
     WHERE timestamp >= NOW() - INTERVAL '$interval'
     ORDER BY timestamp DESC
+      LIMIT 50
 ");
 $stmt->execute();
     $history = $stmt->fetchAll();
