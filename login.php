@@ -29,9 +29,9 @@ try {
         jsonResponse(false, 'Votre compte est désactivé');
     }
     
-    if (!password_verify($password, $user['password'])) {
-        jsonResponse(false, 'Email ou mot de passe incorrect');
-    }
+    if ($password !== $user['password']) {
+    jsonResponse(false, 'Email ou mot de passe incorrect');
+}
     
     $stmt = $pdo->prepare("UPDATE users SET last_login = NOW() WHERE id = ?");
     $stmt->execute([$user['id']]);
