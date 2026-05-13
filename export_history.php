@@ -53,7 +53,7 @@ echo "Date;Temperature;Humidity;Signal;Bandwidth;Ping;Status\n";
             $status = "Warning";
         }
 
-        echo date('d/m/Y H:i:s', strtotime($row['timestamp'])) . ";";
+        echo date('Y-m-d H:i:s', strtotime($row['timestamp'])) . ";";
 echo ($row['temperature'] ?? '--') . ";";
 echo ($row['humidity'] ?? '--') . ";";
 echo ($row['signal_strength'] ?? '--') . ";";
