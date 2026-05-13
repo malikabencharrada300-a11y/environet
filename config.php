@@ -374,4 +374,29 @@ function createRememberToken($user_id)
     }
 }
 
+function getUserRooms($user_id)
+{
+    $pdo = getDBConnection();
+
+    try {
+
+        $stmt = $pdo->prepare("
+            SELECT *
+            FROM rooms
+            WHERE user_id = ?
+            ORDER BY created_at ASC
+        ");
+
+        $stmt->execute([$user_id]);
+
+        return $stmt->fetchAll();
+
+    } catch (PDOException $e) {
+
+        error_log($e->getMessage());
+
+        return [];
+    }
+}
+
 ?>
