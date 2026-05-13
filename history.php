@@ -317,15 +317,18 @@ function determineAlertType($temperature, $humidity, $signal) {
 // ===== AUTO-REFRESH =====
 function refreshHistory() {
     const currentPeriod = new URLSearchParams(window.location.search).get('period') || '24h';
-    
-    fetch('get_history.php?user_id=<?= $user_id ?>&period=' + currentPeriod)
-        .then(response => response.json())
-        .then(data => {
-            if (data.success && data.history) {
-                updateHistoryTable(data.history);
-            }
-        })
-        .catch(error => console.error('Error refreshing history:', error));
+
+    fetch('get_history.php?period=' + currentPeriod, {
+        credentials: 'same-origin'
+    })
+    .then(response => response.json())
+    .then(data => {
+        console.log(data);
+        if (data.success && data.history) {
+            updateHistoryTable(data.history);
+        }
+    })
+    .catch(error => console.error(error));
 }
 
 function updateHistoryTable(historyData) {
