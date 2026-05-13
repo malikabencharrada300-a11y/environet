@@ -153,14 +153,35 @@ elseif ($action === "forgot_password") {
 
     $stmt->execute([$email, $code, $expires]);
 
-    mail(
-        $email,
-        "Environet Reset Code",
-        "Your code: ".$code,
-        "From: no-reply@environet.com"
-    );
+    $mail = new PHPMailer(true);
 
-    response("success", "Code sent");
+    try {
+
+        $mail->isSMTP();
+        $mail->Host = 'smtp.gmail.com';
+        $mail->SMTPAuth = true;
+
+        $mail->Username = 'malikabencharrada300@gmail.com';
+        $mail->Password = 'lvue zevd qtvu blmr';
+
+        $mail->SMTPSecure = 'tls';
+        $mail->Port = 587;
+
+        $mail->setFrom('malikabencharrada300@gmail.com', 'Environet');
+        $mail->addAddress($email);
+
+        $mail->isHTML(true);
+        $mail->Subject = 'Environet Reset Code';
+        $mail->Body = "<h2>Your code: $code</h2>";
+
+        $mail->send();
+
+        response("success", "Code sent");
+
+    } catch (Exception $e) {
+
+        response("error", $mail->ErrorInfo);
+    }
 }
 //
 //=========vrify reset code==========//
