@@ -412,7 +412,7 @@ function exportCSV() {
 }
 
 // Refresh every 15 seconds
-setInterval(refreshHistory, 15000);
+setInterval(refreshHistory, 5000);
 </script>
 </body>
 </html>
