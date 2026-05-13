@@ -335,24 +335,32 @@ function shouldGenerateAlert($pdo, $user_id, $type, $value, $newState, $previous
  * Compte les mesures consécutives dans un état donné
  */
 function getConsecutiveMeasuresInState($pdo, $user_id, $type, $state) {
-    // Cette fonction vérifie les dernières valeurs dans esp32_cam_data
-    // pour confirmer que le changement est réel
     try {
+        $columnMap = [
+            'temperature' => 'temperature',
+            'humidity' => 'humidity',
+            'signal' => 'signal_strength'
+        ];
+
+        $column = $columnMap[$type] ?? null;
+
+        if (!$column) return 0;
+
         $stmt = $pdo->prepare("
-            SELECT {$type} as value 
-            FROM esp32_cam_data 
-            WHERE user_id = ? 
-            AND {$type} IS NOT NULL 
-            ORDER BY timestamp DESC 
+            SELECT {$column} as value
+            FROM esp32_cam_data
+            WHERE user_id = ?
+            AND {$column} IS NOT NULL
+            ORDER BY timestamp DESC
             LIMIT 3
         ");
+
         $stmt->execute([$user_id]);
         $recentValues = $stmt->fetchAll(PDO::FETCH_COLUMN);
-        
+
         $count = 0;
+
         foreach ($recentValues as $recentValue) {
-            $recentState = null;
-            
             switch ($type) {
                 case 'temperature':
                     $recentState = getTemperatureState($recentValue);
@@ -363,17 +371,21 @@ function getConsecutiveMeasuresInState($pdo, $user_id, $type, $state) {
                 case 'signal':
                     $recentState = getSignalState($recentValue);
                     break;
+                default:
+                    $recentState = null;
             }
-            
+
             if ($recentState === $state) {
                 $count++;
             } else {
                 break;
             }
         }
-        
+
         return $count;
+
     } catch (PDOException $e) {
+        error_log($e->getMessage());
         return 0;
     }
 }
