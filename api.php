@@ -1,4 +1,10 @@
 <?php
+use PHPMailer\PHPMailer\PHPMailer;
+use PHPMailer\PHPMailer\Exception;
+
+require 'PHPMailer.php';
+require 'SMTP.php';
+require 'Exception.php';
 
 header("Content-Type: application/json; charset=UTF-8");
 header("Access-Control-Allow-Origin: *");
@@ -164,7 +170,7 @@ elseif ($action === "forgot_password") {
         $mail->Username = 'malikabencharrada300@gmail.com';
         $mail->Password = 'lvue zevd qtvu blmr';
 
-        $mail->SMTPSecure = 'tls';
+        $mail->SMTPSecure = PHPMailer::ENCRYPTION_STARTTLS;
         $mail->Port = 587;
 
         $mail->setFrom('malikabencharrada300@gmail.com', 'Environet');
