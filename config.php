@@ -315,4 +315,38 @@ function requireLogin()
     }
 }
 
+function addRoom($user_id, $room_name, $location)
+{
+    $pdo = getDBConnection();
+
+    try {
+
+        $stmt = $pdo->prepare("
+            INSERT INTO rooms
+            (
+                user_id,
+                room_name,
+                location,
+                created_at
+            )
+            VALUES
+            (?, ?, ?, CURRENT_TIMESTAMP)
+        ");
+
+        $stmt->execute([
+            $user_id,
+            $room_name,
+            $location
+        ]);
+
+        return true;
+
+    } catch (PDOException $e) {
+
+        error_log($e->getMessage());
+
+        return false;
+    }
+}
+
 ?>
