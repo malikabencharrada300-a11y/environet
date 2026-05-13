@@ -170,7 +170,7 @@ elseif ($action === "forgot_password") {
         $mail->Username = 'malikabencharrada300@gmail.com';
         $mail->Password = 'lvue zevd qtvu blmr';
 
-        $mail->SMTPSecure = PHPMailer::ENCRYPTION_STARTTLS;
+        $mail->SMTPSecure = 'tls';
         $mail->Port = 587;
 
         $mail->setFrom('malikabencharrada300@gmail.com', 'Environet');
