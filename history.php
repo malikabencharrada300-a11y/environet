@@ -30,13 +30,12 @@ try {
     }
     
     $stmt = $pdo->prepare("
-        SELECT * FROM esp32_cam_data 
-        WHERE user_id = ? 
-        AND timestamp >= DATE_SUB(NOW(), INTERVAL $interval) 
-        ORDER BY timestamp DESC 
-    ");
-    $stmt->execute([$user_id]);
-    $historyData = $stmt->fetchAll();
+    SELECT * FROM esp32_cam_data
+    WHERE timestamp >= DATE_SUB(NOW(), INTERVAL $interval)
+    ORDER BY timestamp DESC
+");
+$stmt->execute();
+$historyData = $stmt->fetchAll();
     
 } catch(PDOException $e) {
     error_log("Error retrieving history: " . $e->getMessage());
