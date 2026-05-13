@@ -756,7 +756,7 @@
                       });
                       const data = await response.json();
                       if (data.success) {
-                          window.location.href = data.redirect;
+                          window.location.href = data.data.redirect;
                       } else {
                           if (data.message.includes('Email') || data.message.includes('mot de passe')) {
                               emailWrapper.classList.add('input-error');
