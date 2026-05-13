@@ -64,11 +64,12 @@ try {
 }
 
 // Get user rooms
-$rooms = getUserRooms($user_id);
-if (empty($rooms)) {
-    addRoom($user_id, 'Main Room', 'ESP32-CAM Location');
-    $rooms = getUserRooms($user_id);
-}
+$stmt = $pdo->prepare("
+    SELECT * FROM rooms
+    ORDER BY created_at DESC
+");
+$stmt->execute();
+$rooms = $stmt->fetchAll();
 
 // Get all alerts
 $allAlerts = [];
