@@ -172,6 +172,8 @@ elseif ($action === "forgot_password") {
 
         $mail->SMTPSecure = 'tls';
         $mail->Port = 587;
+        $mail->SMTPDebug = 2;
+        $mail->Timeout = 20;
 
         $mail->setFrom('malikabencharrada300@gmail.com', 'Environet');
         $mail->addAddress($email);
