@@ -33,14 +33,13 @@ try {
     }
 
     // Utiliser sensor_data pour l'historique
-    $stmt = $pdo->prepare("
-        SELECT temperature, humidity, signal_strength, bandwidth, ping, timestamp 
-        FROM sensor_data 
-        WHERE user_id = ? 
-        AND timestamp >= DATE_SUB(NOW(), INTERVAL $interval) 
-        ORDER BY timestamp DESC 
-    ");
-    $stmt->execute([$user_id]);
+   $stmt = $pdo->prepare("
+    SELECT temperature, humidity, signal_strength, bandwidth, created_at
+    FROM sensor_data
+    WHERE created_at >= DATE_SUB(NOW(), INTERVAL $interval)
+    ORDER BY created_at DESC
+");
+$stmt->execute();
     $history = $stmt->fetchAll();
 
     echo json_encode([
