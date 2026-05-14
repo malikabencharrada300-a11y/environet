@@ -739,6 +739,30 @@ try {
       text-decoration: none;
       color: white;
     }
+        .btn-view-analytics {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      width: 100%;
+      background: linear-gradient(135deg, #8b5cf6 0%, #3b82f6 100%);
+      color: white;
+      padding: 10px 20px;
+      border-radius: 30px;
+      font-size: 0.85rem;
+      font-weight: 600;
+      text-decoration: none;
+      transition: all 0.2s ease;
+      box-shadow: 0 4px 12px rgba(139, 92, 246, 0.3);
+    }
+    
+    .btn-view-analytics:hover {
+      background: linear-gradient(135deg, #7c3aed 0%, #2563eb 100%);
+      transform: translateY(-2px);
+      box-shadow: 0 6px 16px rgba(139, 92, 246, 0.4);
+      text-decoration: none;
+      color: white;
+    }
   </style>
 </head>
 <body class="bg-[#f6f9fd] p-4 md:p-5 font-sans antialiased">
@@ -1032,12 +1056,19 @@ try {
       </div>
     </div>
 
-    <!-- History Button -->
-    <div class="dashboard-card text-center">
-      <a href="history.php" class="btn-view-all-history">
-        <i class="fas fa-history"></i>
-        <span>View Full History</span>
-      </a>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+      <div class="dashboard-card text-center">
+        <a href="history.php" class="btn-view-all-history">
+          <i class="fas fa-history"></i>
+          <span>View Full History</span>
+        </a>
+      </div>
+      <div class="dashboard-card text-center">
+        <a href="analytics.php" class="btn-view-analytics">
+          <i class="fas fa-chart-line"></i>
+          <span>View Smart Analytics</span>
+        </a>
+      </div>
     </div>
   </div>
 
@@ -1115,12 +1146,19 @@ try {
       </div>
     </div>
 
-    <!-- History Button -->
-    <div class="dashboard-card text-center">
-      <a href="history.php" class="btn-view-all-history">
-        <i class="fas fa-history"></i>
-        <span>View Full History</span>
-      </a>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+      <div class="dashboard-card text-center">
+        <a href="history.php" class="btn-view-all-history">
+          <i class="fas fa-history"></i>
+          <span>View Full History</span>
+        </a>
+      </div>
+      <div class="dashboard-card text-center">
+        <a href="analytics.php" class="btn-view-analytics">
+          <i class="fas fa-chart-line"></i>
+          <span>View Smart Analytics</span>
+        </a>
+      </div>
     </div>
   </div>
 
@@ -1165,6 +1203,21 @@ try {
         <div class="flex justify-between text-[0.55rem] text-muted mt-2" id="hum24Labels">
           <span>0h</span><span>2h</span><span>4h</span><span>6h</span><span>8h</span><span>10h</span><span>12h</span><span>14h</span><span>16h</span><span>18h</span><span>20h</span><span>22h</span>
         </div>
+      </div>
+    </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+      <div class="dashboard-card text-center">
+        <a href="history.php" class="btn-view-all-history">
+          <i class="fas fa-history"></i>
+          <span>View Full History</span>
+        </a>
+      </div>
+      <div class="dashboard-card text-center">
+        <a href="analytics.php" class="btn-view-analytics">
+          <i class="fas fa-chart-line"></i>
+          <span>View Smart Analytics</span>
+        </a>
       </div>
     </div>
   </div>
@@ -1230,10 +1283,26 @@ try {
           <?php endforeach; ?>
         </div>
       </div>
+       
 
       <div class="mt-4 p-3 bg-[#f2f5f9] rounded-xl text-center">
         <i class="fas fa-info-circle text-[#1e4a7a] mr-2"></i>
         <span class="text-sm text-muted">Real-time ESP32 data over MQTT</span>
+      </div>
+    </div>
+
+       <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+      <div class="dashboard-card text-center">
+        <a href="history.php" class="btn-view-all-history">
+          <i class="fas fa-history"></i>
+          <span>View Full History</span>
+        </a>
+      </div>
+      <div class="dashboard-card text-center">
+        <a href="analytics.php" class="btn-view-analytics">
+          <i class="fas fa-chart-line"></i>
+          <span>View Smart Analytics</span>
+        </a>
       </div>
     </div>
   </div>
@@ -1268,12 +1337,21 @@ try {
       </div>
     </div>
 
-    <!-- History Button -->
-    <div class="dashboard-card text-center">
-      <a href="history.php" class="btn-view-all-history">
-        <i class="fas fa-history"></i>
-        <span>View Full History</span>
-      </a>
+        <!-- History and Analytics Buttons -->
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <div class="dashboard-card text-center">
+        <a href="history.php" class="btn-view-all-history">
+          <i class="fas fa-history"></i>
+          <span>View Full History</span>
+        </a>
+      </div>
+      
+      <div class="dashboard-card text-center">
+        <a href="analytics.php" class="btn-view-analytics">
+          <i class="fas fa-chart-line"></i>
+          <span>View Smart Analytics</span>
+        </a>
+      </div>
     </div>
   </div>
 
@@ -1767,7 +1845,74 @@ function checkAndGenerateAlerts(temp, hum, signal) {
 // ===== FONCTIONS DE NOTIFICATION =====
 
 function showNotification(type, title, message, location) {
-    return;
+    const container = document.getElementById('notificationContainer');
+    if(!container) return;
+    
+    const notification = document.createElement('div');
+    notification.className = `notification ${type}`;
+    
+    let icon = 'fa-circle-exclamation';
+    if(type === 'warning') icon = 'fa-exclamation-triangle';
+    if(type === 'info') icon = 'fa-info-circle';
+    
+    const now = new Date();
+    const timeStr = now.getHours() + ':' + now.getMinutes().toString().padStart(2, '0');
+    
+    notification.innerHTML = `
+        <div class="notification-icon">
+            <i class="fas ${icon}"></i>
+        </div>
+        <div class="notification-content">
+            <div class="notification-title">${title}</div>
+            <div class="notification-message">${message}</div>
+            <div class="notification-location">
+                <i class="fas fa-map-marker-alt"></i>
+                <span>${location}</span>
+            </div>
+            <div class="notification-time">${timeStr}</div>
+        </div>
+        <div class="notification-close" onclick="this.parentElement.remove();">
+            <i class="fas fa-times"></i>
+        </div>
+    `;
+    
+    container.appendChild(notification);
+    
+    setTimeout(() => {
+        if(notification.parentNode) {
+            notification.remove();
+        }
+    }, 8000);
+}
+
+function showDemoNotifications() {
+    showNotification('info', 'EnviroNet', 'System is operational', 'System');
+}
+
+function showNotificationFromMap(location, type) {
+    let title, message;
+    
+    if(type === 'critical') {
+        title = 'Critical Alert';
+        message = 'High temperature detected';
+    } else if(type === 'warning') {
+        title = 'Warning';
+        message = 'Monitoring recommended';
+    } else {
+        title = 'Information';
+        message = 'System operational';
+    }
+    
+    showNotification(type, title, message, location);
+}
+
+function hideAlertInfo() {
+    const alertInfo = document.getElementById('selectedAlertInfo');
+    if(alertInfo) alertInfo.classList.add('hidden');
+    
+    document.querySelectorAll('.map-marker').forEach(marker => {
+        marker.classList.remove('map-highlight');
+    });
 }
 
 // ===== FONCTIONS D'HISTORIQUE =====
