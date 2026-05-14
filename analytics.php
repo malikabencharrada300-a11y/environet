@@ -425,35 +425,100 @@ $username = $_SESSION['user_name'] ?? 'User';
         }
     }
 
-    async function updateAlertChart() {
-        try {
-            const response = await fetch(`get_alert_chart.php?user_id=<?= $user_id ?>`);
-            const data = await response.json();
+   // Fonction pour mettre à jour le graphique d'alertes
+async function updateAlertChart() {
+    try {
+        const filter = document.getElementById('alertTypeFilter')?.value || 'all';
+        const response = await fetch(`get_alert_chart.php?filter=${filter}&user_id=<?= $user_id ?>`);
+        const data = await response.json();
 
-            if (data.success && data.alerts) {
-                const labels = data.alerts.map(x => x.day);
-                const values = data.alerts.map(x => parseInt(x.total));
+        if (data.success && data.alerts) {
+            const labels = data.alerts.map(x => x.day);
+            const values = data.alerts.map(x => parseInt(x.total));
+            
+            // Déterminer les couleurs en fonction de la sévérité
+            const colors = data.alerts.map(alert => {
+                if (alert.critical > 0) return '#dc2626';      // Rouge pour critique
+                if (alert.warning > 0) return '#f59e0b';       // Orange pour warning
+                return '#10b981';                               // Vert pour normal
+            });
 
-                if (state.charts.alert) {
-                    state.charts.alert.data.labels = labels;
-                    state.charts.alert.data.datasets[0].data = values;
-                    state.charts.alert.data.datasets[0].backgroundColor = values.map(v => {
-                        if (v >= 10) return '#dc2626';
-                        if (v >= 5) return '#f59e0b';
-                        return '#10b981';
-                    });
-                    state.charts.alert.update();
-                }
-
-                const todayTotal = values.reduce((a, b) => a + b, 0);
-                document.getElementById('todayAlerts').textContent = todayTotal;
-                
-                calculateAIScore(values);
+            if (state.charts.alert) {
+                state.charts.alert.data.labels = labels;
+                state.charts.alert.data.datasets[0].data = values;
+                state.charts.alert.data.datasets[0].backgroundColor = colors;
+                state.charts.alert.data.datasets[0].borderColor = colors;
+                state.charts.alert.update();
             }
-        } catch (e) {
-            console.error('Error loading alerts:', e);
+
+            // Calculer le total des alertes aujourd'hui
+            const todayTotal = data.alerts.length > 0 ? data.alerts[data.alerts.length - 1]?.total || 0 : 0;
+            const todayAlertsSpan = document.getElementById('todayAlerts');
+            if (todayAlertsSpan) {
+                todayAlertsSpan.textContent = todayTotal;
+            }
+            
+            // Calculer le score IA basé sur les alertes
+            const totalAlerts = data.alerts.reduce((sum, alert) => sum + alert.total, 0);
+            calculateAIScore(totalAlerts);
+        } else {
+            // Données de démonstration si aucune alerte n'existe
+            const demoLabels = [];
+            const demoValues = [];
+            for (let i = 6; i >= 0; i--) {
+                const date = new Date();
+                date.setDate(date.getDate() - i);
+                demoLabels.push(date.getDate() + '/' + (date.getMonth() + 1));
+                demoValues.push(Math.floor(Math.random() * 5));
+            }
+            
+            if (state.charts.alert) {
+                state.charts.alert.data.labels = demoLabels;
+                state.charts.alert.data.datasets[0].data = demoValues;
+                state.charts.alert.data.datasets[0].backgroundColor = demoValues.map(v => v > 0 ? '#f59e0b' : '#10b981');
+                state.charts.alert.update();
+            }
+        }
+    } catch (e) {
+        console.error('Error loading alerts:', e);
+        // Données de démonstration en cas d'erreur
+        const demoLabels = [];
+        const demoValues = [];
+        for (let i = 6; i >= 0; i--) {
+            const date = new Date();
+            date.setDate(date.getDate() - i);
+            demoLabels.push(date.getDate() + '/' + (date.getMonth() + 1));
+            demoValues.push(0);
+        }
+        
+        if (state.charts.alert) {
+            state.charts.alert.data.labels = demoLabels;
+            state.charts.alert.data.datasets[0].data = demoValues;
+            state.charts.alert.update();
         }
     }
+}
+
+function calculateAIScore(totalAlerts) {
+    const score = Math.max(0, 100 - totalAlerts * 2);
+    const aiScoreSpan = document.getElementById('aiScore');
+    if (aiScoreSpan) {
+        aiScoreSpan.textContent = score + '%';
+        
+        // Changer la couleur selon le score
+        if (score >= 80) {
+            aiScoreSpan.className = 'text-xl font-bold text-green-600';
+        } else if (score >= 50) {
+            aiScoreSpan.className = 'text-xl font-bold text-orange-500';
+        } else {
+            aiScoreSpan.className = 'text-xl font-bold text-red-600';
+        }
+    }
+}
+
+function filterAlerts() {
+    updateAlertChart();
+}
 
     function calculateAIScore(alerts) {
         if (!alerts || alerts.length === 0) return;
