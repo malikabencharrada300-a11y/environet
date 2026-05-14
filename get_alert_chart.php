@@ -15,10 +15,10 @@ $filter = isset($_GET['filter']) ? $_GET['filter'] : 'all';
 try {
     $pdo = getDBConnection();
     
-    // Requête de base - AJOUT des compteurs par TYPE
+    // Requête adaptée à votre structure de table
     $sql = "
         SELECT 
-            DATE(created_at) as day, 
+            DATE(created_at) as day,
             COUNT(*) as total,
             SUM(CASE WHEN severity = 'critical' THEN 1 ELSE 0 END) as critical,
             SUM(CASE WHEN severity = 'warning' THEN 1 ELSE 0 END) as warning,
@@ -48,39 +48,48 @@ try {
     
     $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
     
-    // Formater les données pour le graphique
     $alerts = [];
     $totalAlerts = 0;
     $todayAlerts = 0;
+    $todayCritical = 0;
+    $todayWarning = 0;
+    $todayInfo = 0;
     
-    foreach ($rows as $row) {
-        $day = date('d/m', strtotime($row['day']));
-        $total = (int)$row['total'];
-        $totalAlerts += $total;
-        
-        // Compter les alertes d'aujourd'hui
-        if ($day == date('d/m')) {
-            $todayAlerts = $total;
+    // Si des données existent dans la base
+    if (!empty($rows)) {
+        foreach ($rows as $row) {
+            $day = date('d/m', strtotime($row['day']));
+            $total = (int)$row['total'];
+            $totalAlerts += $total;
+            
+            // Compter les alertes d'aujourd'hui
+            if ($day == date('d/m')) {
+                $todayAlerts = $total;
+                $todayCritical = (int)$row['critical'];
+                $todayWarning = (int)$row['warning'];
+                $todayInfo = (int)$row['info'];
+            }
+            
+            $alerts[] = [
+                'day' => $day,
+                'total' => $total,
+                'critical' => (int)$row['critical'],
+                'warning' => (int)$row['warning'],
+                'info' => (int)$row['info'],
+                'temperature' => (int)$row['temperature'],
+                'signal' => (int)$row['signal'],
+                'connection' => (int)$row['connection']
+            ];
         }
-        
-        $alerts[] = [
-            'day' => $day,
-            'total' => $total,
-            'critical' => (int)$row['critical'],
-            'warning' => (int)$row['warning'],
-            'info' => (int)$row['info'],
-            'temperature' => (int)$row['temperature'],
-            'signal' => (int)$row['signal'],
-            'connection' => (int)$row['connection']
-        ];
     }
     
-    // Si pas de données, générer des données de démonstration
-    if (empty($alerts)) {
-        for ($i = 6; $i >= 0; $i--) {
-            $date = date('d/m', strtotime("-$i days"));
-            $isToday = ($i == 0);
-            $alerts[] = [
+    // S'assurer qu'on a toujours 7 jours de données
+    $existingDays = array_column($alerts, 'day');
+    for ($i = 6; $i >= 0; $i--) {
+        $date = date('d/m', strtotime("-$i days"));
+        if (!in_array($date, $existingDays)) {
+            // Ajouter un jour sans alertes
+            array_unshift($alerts, [
                 'day' => $date,
                 'total' => 0,
                 'critical' => 0,
@@ -89,16 +98,23 @@ try {
                 'temperature' => 0,
                 'signal' => 0,
                 'connection' => 0
-            ];
+            ]);
         }
-        $todayAlerts = 0;
     }
+    
+    // Réordonner par date
+    usort($alerts, function($a, $b) {
+        return strtotime(str_replace('/', '-', $a['day'])) - strtotime(str_replace('/', '-', $b['day']));
+    });
     
     echo json_encode([
         'success' => true,
         'alerts' => $alerts,
         'total' => $totalAlerts,
         'today' => $todayAlerts,
+        'todayCritical' => $todayCritical,
+        'todayWarning' => $todayWarning,
+        'todayInfo' => $todayInfo,
         'filter' => $filter
     ]);
     
