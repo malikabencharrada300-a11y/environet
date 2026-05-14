@@ -7,7 +7,7 @@ if (!isset($_SESSION['user_id'])) {
 }
 
 $user_id = $_SESSION['user_id'];
-$username = $_SESSION['username'] ?? $_SESSION['name'] ?? 'User';
+$username = $_SESSION['user_name'] ?? 'User';
 ?>
 <!DOCTYPE html>
 <html lang="fr">
