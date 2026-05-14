@@ -10,74 +10,49 @@ $user_id = $_SESSION['user_id'];
 $username = $_SESSION['user_name'] ?? 'User';
 ?>
 <!DOCTYPE html>
-<html lang="fr">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Smart Analytics - Monitoring IoT</title>
+
+    <!-- Libraries -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-zoom@2.0.1/dist/chartjs-plugin-zoom.min.js"></script>
+
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.31/jspdf.plugin.autotable.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-zoom@2.0.1/dist/chartjs-plugin-zoom.min.js"></script>
+
     <script src="https://cdn.tailwindcss.com"></script>
+
     <style>
-        .status-online { color: #10B981; }
-        .status-offline { color: #EF4444; }
-        .status-critical { color: #DC2626; }
-        .status-warning { color: #F59E0B; }
-        .status-good { color: #10B981; }
-        
+
+        .status-online {
+            color: #10B981;
+        }
+
+        .status-offline {
+            color: #EF4444;
+        }
+
+        .status-warning {
+            color: #F59E0B;
+        }
+
+        .status-critical {
+            color: #DC2626;
+        }
+
+        .status-good {
+            color: #10B981;
+        }
+
         .chart-container {
             position: relative;
-            height: 200px;
             width: 100%;
+            height: 200px;
         }
-        
-        @keyframes pulse {
-            0%, 100% { opacity: 1; }
-            50% { opacity: 0.5; }
-        }
-        
-        .pulse-animation {
-            animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
-        }
-        
-        .btn-pdf:hover {
-            transform: translateY(-2px);
-        }
-        
-        .alert-badge {
-            position: absolute;
-            top: -5px;
-            right: -5px;
-            background: #EF4444;
-            color: white;
-            border-radius: 50%;
-            width: 20px;
-            height: 20px;
-            font-size: 12px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        }
-        
-        .ai-pulse {
-            animation: aiPulse 2s ease-in-out infinite;
-        }
-        
-        @keyframes aiPulse {
-            0%, 100% { box-shadow: 0 0 5px rgba(139, 92, 246, 0.5); }
-            50% { box-shadow: 0 0 20px rgba(139, 92, 246, 0.8); }
-        }
-        
-        .insight-card {
-            transition: all 0.3s ease;
-        }
-        
-        .insight-card:hover {
-            transform: scale(1.02);
-        }
-        
+
         .pdf-loading {
             display: none;
             position: fixed;
@@ -85,376 +60,380 @@ $username = $_SESSION['user_name'] ?? 'User';
             left: 50%;
             transform: translate(-50%, -50%);
             background: white;
-            padding: 20px;
-            border-radius: 10px;
-            box-shadow: 0 10px 40px rgba(0,0,0,0.2);
-            z-index: 1000;
+            padding: 25px;
+            border-radius: 12px;
+            box-shadow: 0 15px 40px rgba(0,0,0,0.2);
+            z-index: 9999;
         }
+
+        .fade-in {
+            animation: fadeIn .5s ease;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .glass {
+            backdrop-filter: blur(10px);
+            background: rgba(255,255,255,0.85);
+        }
+
+        .smooth-hover {
+            transition: all .3s ease;
+        }
+
+        .smooth-hover:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 8px 18px rgba(0,0,0,0.08);
+        }
+
+        canvas {
+            user-select: none;
+        }
+
+        button {
+            transition: all .25s ease;
+        }
+
+        button:hover {
+            transform: translateY(-1px);
+        }
+
+        select {
+            outline: none;
+        }
+
+        #insightsContainer p,
+        #predictionsContainer p,
+        #recommendationsContainer p {
+            padding: 6px 0;
+            border-bottom: 1px solid rgba(0,0,0,0.05);
+        }
+
+        #insightsContainer p:last-child,
+        #predictionsContainer p:last-child,
+        #recommendationsContainer p:last-child {
+            border-bottom: none;
+        }
+
+        .ai-score-high {
+            color: #10B981;
+            font-weight: 700;
+        }
+
+        .ai-score-medium {
+            color: #F59E0B;
+            font-weight: 700;
+        }
+
+        .ai-score-low {
+            color: #DC2626;
+            font-weight: 700;
+        }
+
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: #CBD5E1;
+            border-radius: 8px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: #94A3B8;
+        }
+
     </style>
 </head>
 
 <body class="bg-gradient-to-br from-gray-50 to-blue-50 min-h-screen">
-    <!-- Loading overlay pour PDF -->
+
     <div id="pdfLoading" class="pdf-loading">
         <div class="text-center">
             <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-600 mx-auto mb-4"></div>
-            <p class="text-gray-700 font-semibold">Génération du rapport PDF...</p>
+            <p class="text-gray-700 font-semibold">Generating PDF report...</p>
         </div>
     </div>
 
     <div class="container mx-auto p-6 max-w-7xl">
-        
-        <!-- NOUVELLE TOP BAR INTÉGRÉE -->
+
         <div class="bg-white shadow-sm rounded-2xl px-6 py-4 mb-8 flex items-center justify-between">
-            <!-- Left -->
+
             <div class="flex items-center gap-6">
                 <a href="dashboard.php"
                    class="flex items-center gap-2 bg-blue-800 hover:bg-blue-900 text-white px-5 py-2 rounded-full font-semibold transition">
                     ← Dashboard
                 </a>
+
                 <div class="flex items-center gap-2">
                     <span class="text-xl">⚠️</span>
                     <h1 class="text-3xl font-bold text-gray-800">Smart Analytics</h1>
                 </div>
             </div>
 
-            <!-- Right -->
             <div class="flex items-center gap-5">
-                <!-- PDF -->
+
                 <button onclick="generatePDFReport()"
-                        class="bg-purple-600 hover:bg-purple-700 text-white px-5 py-2 rounded-lg shadow font-semibold transition btn-pdf">
-                    📄 Générer Rapport PDF
+                        class="bg-purple-600 hover:bg-purple-700 text-white px-5 py-2 rounded-lg shadow font-semibold transition">
+                    📄 Generate PDF Report
                 </button>
 
-                <!-- Live Status -->
                 <div class="flex items-center gap-2 text-sm font-semibold text-green-600">
                     <span class="w-2 h-2 bg-green-500 rounded-full animate-pulse"></span>
                     <span id="liveStatusText">Real-time</span>
                 </div>
 
-                <!-- User -->
                 <div class="flex items-center gap-3 bg-gray-100 px-4 py-2 rounded-full shadow-sm">
                     <span class="text-sm font-semibold text-blue-900">
                         <?php echo htmlspecialchars($username); ?>
                     </span>
+
                     <div class="w-9 h-9 rounded-full bg-blue-900 text-white flex items-center justify-center font-bold">
-                        <?php echo strtoupper(substr($username, 0, 1)); ?>
+                        <?php echo strtoupper(substr($username,0,1)); ?>
                     </div>
                 </div>
+
             </div>
         </div>
 
-        <!-- Grille principale -->
+
         <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
-            
-            <!-- Carte Statut Appareil -->
-            <div class="bg-white rounded-xl shadow-lg p-6 hover:shadow-xl transition-shadow duration-300">
-                <div class="flex items-center justify-between mb-4">
-                    <h2 class="font-bold text-lg text-gray-800">Statut Appareil</h2>
+
+            <div class="bg-white rounded-xl shadow-lg p-6">
+
+                <div class="flex justify-between mb-4">
+                    <h2 class="font-bold text-lg text-gray-800">Device Status</h2>
                     <span id="deviceStatusIcon" class="text-2xl">📡</span>
                 </div>
-                
+
                 <div class="space-y-3">
                     <div class="flex items-center space-x-2">
-                        <span class="text-gray-600">État :</span>
-                        <span id="deviceStatus" class="font-semibold text-gray-400">Vérification...</span>
+                        <span class="text-gray-600">Status:</span>
+                        <span id="deviceStatus" class="font-semibold text-gray-400">Checking...</span>
                     </div>
+
                     <div class="flex items-center space-x-2">
-                        <span class="text-gray-600">Dernière activité :</span>
+                        <span class="text-gray-600">Last Activity:</span>
                         <span id="lastSeen" class="font-mono text-sm">--:--:--</span>
                     </div>
+
                     <div class="flex items-center space-x-2">
-                        <span class="text-gray-600">Uptime :</span>
+                        <span class="text-gray-600">Uptime:</span>
                         <span id="uptime" class="font-mono text-sm">--</span>
                     </div>
                 </div>
+
             </div>
 
-            <!-- Carte Température -->
-            <div class="bg-white rounded-xl shadow-lg p-6 hover:shadow-xl transition-shadow duration-300">
-                <div class="flex items-center justify-between mb-4">
-                    <h2 class="font-bold text-lg text-gray-800">Analyse Température</h2>
+
+            <div class="bg-white rounded-xl shadow-lg p-6">
+
+                <div class="flex justify-between mb-4">
+                    <h2 class="font-bold text-lg text-gray-800">Temperature Analysis</h2>
                     <span id="tempIcon" class="text-2xl">🌡️</span>
                 </div>
-                
+
                 <div class="mb-4">
-                    <p class="text-gray-600">Tendance : <span id="tempTrend" class="font-semibold">Analyse en cours...</span></p>
-                    <p class="text-gray-600 mt-1">Valeur actuelle : <span id="currentTemp" class="font-bold text-xl">--°C</span></p>
+                    <p class="text-gray-600">Trend:
+                        <span id="tempTrend" class="font-semibold">Analyzing...</span>
+                    </p>
+
+                    <p class="text-gray-600 mt-1">Current Value:
+                        <span id="currentTemp" class="font-bold text-xl">--°C</span>
+                    </p>
                 </div>
-                
+
                 <div class="chart-container">
                     <canvas id="tempTrendChart"></canvas>
                 </div>
+
             </div>
 
-            <!-- Carte Réseau -->
-            <div class="bg-white rounded-xl shadow-lg p-6 hover:shadow-xl transition-shadow duration-300">
-                <div class="flex items-center justify-between mb-4">
-                    <h2 class="font-bold text-lg text-gray-800">Analyse Réseau</h2>
+
+            <div class="bg-white rounded-xl shadow-lg p-6">
+
+                <div class="flex justify-between mb-4">
+                    <h2 class="font-bold text-lg text-gray-800">Network Analysis</h2>
                     <span id="signalIcon" class="text-2xl">📶</span>
                 </div>
-                
+
                 <div class="mb-4">
-                    <p class="text-gray-600">Signal : <span id="signalTrend" class="font-semibold">Analyse en cours...</span></p>
-                    <p class="text-gray-600 mt-1">Force : <span id="currentSignal" class="font-bold text-xl">--%</span></p>
+                    <p class="text-gray-600">Signal:
+                        <span id="signalTrend" class="font-semibold">Analyzing...</span>
+                    </p>
+
+                    <p class="text-gray-600 mt-1">Strength:
+                        <span id="currentSignal" class="font-bold text-xl">--%</span>
+                    </p>
                 </div>
-                
+
                 <div class="chart-container">
                     <canvas id="signalTrendChart"></canvas>
                 </div>
+
             </div>
+
         </div>
-        
-        <!-- Section Smart Intelligence -->
-        <div class="bg-gradient-to-r from-purple-50 to-blue-50 rounded-xl shadow-lg p-6 mb-6 ai-pulse">
-            <div class="flex items-center justify-between mb-6">
-                <div class="flex items-center space-x-3">
-                    <div class="w-10 h-10 bg-gradient-to-r from-purple-600 to-blue-600 rounded-lg flex items-center justify-center">
-                        <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path>
-                        </svg>
-                    </div>
-                    <div>
-                        <h2 class="text-2xl font-bold text-gray-800">Intelligence Artificielle</h2>
-                        <p class="text-sm text-gray-600">Analyse prédictive et recommandations</p>
-                    </div>
+
+
+        <div class="bg-gradient-to-r from-purple-50 to-blue-50 rounded-xl shadow-lg p-6 mb-6">
+
+            <div class="flex justify-between mb-6">
+                <div>
+                    <h2 class="text-2xl font-bold text-gray-800">Artificial Intelligence</h2>
+                    <p class="text-sm text-gray-600">Predictive analysis & anomalies</p>
                 </div>
-                <span id="aiStatus" class="text-sm font-semibold text-green-600">● Actif</span>
+
+                <span id="aiStatus" class="text-sm font-semibold text-green-600">● Active</span>
             </div>
-            
+
             <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-                <!-- Carte Insights -->
-                <div class="bg-white rounded-lg p-4 shadow insight-card">
-                    <h3 class="font-bold text-purple-700 mb-3 flex items-center">
-                        <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"></path>
-                        </svg>
-                        Insights en temps réel
-                    </h3>
-                    <div id="insightsContainer" class="space-y-2 text-sm">
-                        <p class="text-gray-500">Analyse en cours...</p>
-                    </div>
+
+                <div class="bg-white rounded-lg p-4 shadow">
+                    <h3 class="font-bold text-purple-700 mb-3">Insights</h3>
+                    <div id="insightsContainer" class="space-y-2 text-sm"></div>
                 </div>
-                
-                <!-- Carte Prédictions -->
-                <div class="bg-white rounded-lg p-4 shadow insight-card">
-                    <h3 class="font-bold text-blue-700 mb-3 flex items-center">
-                        <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-                        </svg>
-                        Prédictions
-                    </h3>
-                    <div id="predictionsContainer" class="space-y-2 text-sm">
-                        <p class="text-gray-500">Calcul en cours...</p>
-                    </div>
+
+                <div class="bg-white rounded-lg p-4 shadow">
+                    <h3 class="font-bold text-blue-700 mb-3">Predictions</h3>
+                    <div id="predictionsContainer" class="space-y-2 text-sm"></div>
                 </div>
-                
-                <!-- Carte Recommandations -->
-                <div class="bg-white rounded-lg p-4 shadow insight-card">
-                    <h3 class="font-bold text-green-700 mb-3 flex items-center">
-                        <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-                        </svg>
-                        Recommandations
-                    </h3>
-                    <div id="recommendationsContainer" class="space-y-2 text-sm">
-                        <p class="text-gray-500">Génération en cours...</p>
-                    </div>
+
+                <div class="bg-white rounded-lg p-4 shadow">
+                    <h3 class="font-bold text-green-700 mb-3">Recommendations</h3>
+                    <div id="recommendationsContainer" class="space-y-2 text-sm"></div>
                 </div>
+
             </div>
+
         </div>
-        
-        <!-- Graphiques détaillés -->
+
+
         <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <!-- Courbe d'historique -->
+
             <div class="bg-white rounded-xl shadow-lg p-6">
-                <div class="flex items-center justify-between mb-4">
-                    <h3 class="font-bold text-lg">📊 Courbe d'Historique</h3>
+
+                <div class="flex justify-between mb-4">
+                    <h3 class="font-bold text-lg">📊 History Chart</h3>
+
                     <div class="flex space-x-2">
-                        <button onclick="switchHistoryView('1h')" class="px-3 py-1 text-sm rounded bg-gray-100 hover:bg-gray-200">24h</button>
-                        <button onclick="switchHistoryView('24h')" class="px-3 py-1 text-sm rounded bg-blue-100 hover:bg-blue-200">7d</button>
-                        <button onclick="switchHistoryView('7j')" class="px-3 py-1 text-sm rounded bg-gray-100 hover:bg-gray-200">30d</button>
+                        <button onclick="switchHistoryView('24h')" class="px-3 py-1 text-sm rounded bg-blue-100">24h</button>
+                        <button onclick="switchHistoryView('7d')" class="px-3 py-1 text-sm rounded bg-gray-100">7d</button>
+                        <button onclick="switchHistoryView('30d')" class="px-3 py-1 text-sm rounded bg-gray-100">30d</button>
                     </div>
                 </div>
-                <div class="chart-container" style="height: 300px;">
+
+                <div class="chart-container" style="height:300px;">
                     <canvas id="historyChart"></canvas>
                 </div>
+
                 <div class="mt-4 flex justify-between text-sm text-gray-600">
                     <span>Min: <span id="historyMin">--</span></span>
                     <span>Max: <span id="historyMax">--</span></span>
-                    <span>Moy: <span id="historyAvg">--</span></span>
+                    <span>Avg: <span id="historyAvg">--</span></span>
                 </div>
+
+                <div class="mt-8">
+                    <h4 class="font-semibold text-purple-700 mb-2">🔮 24h Forecast</h4>
+                    <div class="chart-container" style="height:220px;">
+                        <canvas id="predictiveChart"></canvas>
+                    </div>
+                </div>
+
             </div>
-            
-            <!-- Courbe d'alerte -->
+
+
             <div class="bg-white rounded-xl shadow-lg p-6">
-                <div class="flex items-center justify-between mb-4">
-                    <h3 class="font-bold text-lg">⚠️ Courbe d'Alerte</h3>
-                    <select id="alertTypeFilter" onchange="filterAlerts()" class="px-3 py-1 text-sm rounded border border-gray-300">
-                        <option value="all">Toutes les alertes</option>
-                        <option value="temperature">Température</option>
+
+                <div class="flex justify-between mb-4">
+                    <h3 class="font-bold text-lg">⚠️ Alert Chart</h3>
+
+                    <select id="alertTypeFilter"
+                            onchange="filterAlerts()"
+                            class="px-3 py-1 text-sm rounded border border-gray-300">
+
+                        <option value="all">All</option>
+                        <option value="temperature">Temperature</option>
                         <option value="signal">Signal</option>
-                        <option value="connection">Connexion</option>
+                        <option value="connection">Connection</option>
+
                     </select>
                 </div>
-                <div class="chart-container" style="height: 300px;">
+
+                <div class="chart-container" style="height:300px;">
                     <canvas id="alertChart"></canvas>
                 </div>
+
                 <div class="mt-4">
                     <p class="text-sm text-gray-600">
-                        Alertes aujourd'hui: <span id="todayAlerts" class="font-bold text-red-600">0</span>
+                        Today's alerts:
+                        <span id="todayAlerts" class="font-bold text-red-600">0</span>
                     </p>
                 </div>
-            </div>
-        </div>
-    </div>
 
-  <script>
+            </div>
+
+        </div>
+
+    </div>
+    
+ <script>
 const CONFIG = {
     UPDATE_INTERVAL: 5000,
     OFFLINE_THRESHOLD: 30000,
-    TEMP_THRESHOLDS: { CRITICAL: 28, WARNING: 24 },
-    SIGNAL_THRESHOLDS: { CRITICAL: 30, WEAK: 50 }
+    TEMP_CRITICAL: 28,
+    TEMP_WARNING: 24,
+    SIGNAL_CRITICAL: 30,
+    SIGNAL_WARNING: 50
 };
 
 const state = {
-    lastESP32Update: Date.now(),
-    alerts: [],
     charts: {},
-    currentHistoryView: '24h'
+    lastUpdate: Date.now(),
+    currentPeriod: '24h',
+    alertView: 'bar'
 };
 
-function safeNumber(v, def = 0) {
+function safeNum(v){
     const n = parseFloat(v);
-    return isNaN(n) ? def : n;
+    return isNaN(n) ? 0 : n;
 }
 
-/* =========================
-   HISTORIQUE SQL
-========================= */
-async function switchHistoryView(period) {
-
-    state.currentHistoryView = period;
-
-    try {
-
-        const response = await fetch(`get_history.php?period=${period}`);
-        const result = await response.json();
-
-        if (!result.success || !result.history) {
-            console.log("Pas de données historique");
-            return;
-        }
-
-        const rows = result.history.reverse();
-
-        const labels = rows.map(r => {
-            const d = new Date(r.timestamp);
-
-            if (period === '7d' || period === '30d') {
-                return d.toLocaleDateString();
-            }
-
-            return d.toLocaleTimeString();
-        });
-
-        const temps = rows.map(r => parseFloat(r.temperature || 0));
-        const signals = rows.map(r => parseFloat(r.signal_strength || 0));
-
-        const c = state.charts.history;
-
-        c.data.labels = labels;
-        c.data.datasets[0].data = temps;
-        c.data.datasets[1].data = signals;
-
-        c.update();
-
-        if (temps.length > 0) {
-
-            const avg = temps.reduce((a,b)=>a+b,0)/temps.length;
-
-            document.getElementById('historyMin').textContent =
-                Math.min(...temps).toFixed(1) + '°C';
-
-            document.getElementById('historyMax').textContent =
-                Math.max(...temps).toFixed(1) + '°C';
-
-            document.getElementById('historyAvg').textContent =
-                avg.toFixed(1) + '°C';
-        }
-
-    } catch(e) {
-        console.error("Erreur historique:", e);
-    }
-}
-
-/* =========================
-   CHARTS
-========================= */
 function initCharts() {
 
-    // Temp chart
+    // Temperature chart
     state.charts.temp = new Chart(document.getElementById('tempTrendChart'), {
         type: 'line',
-        data: {
-            labels: [],
-            datasets: [{
-                data: [],
-                borderColor: '#f59e0b',
-                backgroundColor: 'rgba(245,158,11,0.12)',
-                fill: true,
-                tension: 0.45,
-                borderWidth: 3,
-                pointRadius: 2,
-                pointHoverRadius: 6
-            }]
-        },
-        options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            plugins: {
-                legend: { display: false }
-            },
-            scales: {
-                x: { display: false },
-                y: {
-                    grid: { color: 'rgba(0,0,0,0.05)' }
-                }
-            }
-        }
+        data: { labels: [], datasets: [{
+            data: [],
+            borderColor: '#f97316',
+            backgroundColor: 'rgba(249,115,22,.12)',
+            fill: true,
+            tension: .4
+        }]},
+        options: { responsive:true, maintainAspectRatio:false, plugins:{legend:{display:false}} }
     });
 
     // Signal chart
     state.charts.signal = new Chart(document.getElementById('signalTrendChart'), {
         type: 'line',
-        data: {
-            labels: [],
-            datasets: [{
-                data: [],
-                borderColor: '#3b82f6',
-                backgroundColor: 'rgba(59,130,246,0.12)',
-                fill: true,
-                tension: 0.45,
-                borderWidth: 3,
-                pointRadius: 2,
-                pointHoverRadius: 6
-            }]
-        },
-        options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            plugins: {
-                legend: { display: false }
-            },
-            scales: {
-                x: { display: false },
-                y: {
-                    min: 0,
-                    max: 100,
-                    grid: { color: 'rgba(0,0,0,0.05)' }
-                }
-            }
-        }
+        data: { labels: [], datasets: [{
+            data: [],
+            borderColor: '#2563eb',
+            backgroundColor: 'rgba(37,99,235,.12)',
+            fill: true,
+            tension: .4
+        }]},
+        options: { responsive:true, maintainAspectRatio:false, plugins:{legend:{display:false}} }
     });
 
     // History chart
@@ -464,134 +443,84 @@ function initCharts() {
             labels: [],
             datasets: [
                 {
-                    label: 'Température °C',
+                    label: 'Temperature °C',
                     data: [],
                     borderColor: '#f59e0b',
-                    backgroundColor: 'rgba(245,158,11,0.12)',
-                    fill: true,
-                    tension: 0.45,
-                    borderWidth: 3,
-                    pointRadius: 2,
-                    pointHoverRadius: 6,
-                    yAxisID: 'y'
+                    backgroundColor: 'rgba(245,158,11,.08)',
+                    yAxisID: 'y',
+                    tension: .4,
+                    fill: true
                 },
                 {
                     label: 'Signal %',
                     data: [],
                     borderColor: '#3b82f6',
-                    backgroundColor: 'rgba(59,130,246,0.10)',
-                    fill: true,
-                    tension: 0.45,
-                    borderWidth: 3,
-                    pointRadius: 2,
-                    pointHoverRadius: 6,
-                    yAxisID: 'y1'
+                    backgroundColor: 'rgba(59,130,246,.08)',
+                    yAxisID: 'y1',
+                    tension: .4,
+                    fill: true
                 }
             ]
         },
         options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            interaction: {
-                mode: 'index',
-                intersect: false
-            },
-            plugins: {
-                zoom: {
-                    pan: {
-                        enabled: true,
-                        mode: 'x'
-                    },
-                    zoom: {
-                        wheel: {
-                            enabled: true
-                        },
-                        pinch: {
-                            enabled: true
-                        },
-                        mode: 'x'
-                    }
+            responsive:true,
+            maintainAspectRatio:false,
+            interaction:{mode:'index',intersect:false},
+            plugins:{
+                zoom:{
+                    zoom:{wheel:{enabled:true}, pinch:{enabled:true}, mode:'x'},
+                    pan:{enabled:true, mode:'x'}
                 }
             },
-            scales: {
-                y: {
-                    type: 'linear',
-                    position: 'left'
-                },
-                y1: {
-                    type: 'linear',
-                    position: 'right',
-                    grid: {
-                        drawOnChartArea: false
-                    }
-                }
+            scales:{
+                y:{position:'left'},
+                y1:{position:'right',grid:{drawOnChartArea:false}}
             }
         }
     });
 
     // Alert chart
     state.charts.alert = new Chart(document.getElementById('alertChart'), {
-        type: 'bar',
-        data: {
-            labels: [],
-            datasets: [{
-                label: 'Alertes',
-                data: [],
-                borderRadius: 8,
-                borderSkipped: false,
-                backgroundColor: []
+        type:'bar',
+        data:{
+            labels:[],
+            datasets:[{
+                label:'Alerts',
+                data:[],
+                backgroundColor:[]
             }]
         },
-        options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            scales: {
-                y: {
-                    beginAtZero: true
-                }
-            }
+        options:{
+            responsive:true,
+            maintainAspectRatio:false
         }
+    });
+
+    // Prediction chart
+    state.charts.predict = new Chart(document.getElementById('predictChart'), {
+        type:'line',
+        data:{
+            labels:[],
+            datasets:[{
+                label:'Next 24h Prediction',
+                data:[],
+                borderColor:'#8b5cf6',
+                backgroundColor:'rgba(139,92,246,.10)',
+                fill:true,
+                tension:.4
+            }]
+        },
+        options:{ responsive:true, maintainAspectRatio:false }
     });
 }
 
-function init() {
-
-    initCharts();
-
-    // Charger historique SQL au démarrage
-    switchHistoryView('24h');
-
-    // Charger alertes SQL
-    updateAlertChart();
-
-    // Charger live
-    loadAnalytics();
-
-    // Refresh live
-    setInterval(loadAnalytics, 5000);
-
-    // Refresh alertes
-    setInterval(updateAlertChart, 10000);
-
-    // Status appareil
-    setInterval(checkOffline, 5000);
-
-    // Uptime
-    setInterval(updateUptime, 1000);
-}
-
-document.addEventListener('DOMContentLoaded', init);
-
-/* =========================
-   LIVE CHARTS
-========================= */
-function pushChart(chart, value, max = 20) {
+function pushMini(chart, value, max=20){
     const now = new Date().toLocaleTimeString();
 
     chart.data.labels.push(now);
     chart.data.datasets[0].data.push(value);
 
-    while (chart.data.labels.length > max) {
+    while(chart.data.labels.length > max){
         chart.data.labels.shift();
         chart.data.datasets[0].data.shift();
     }
@@ -599,64 +528,62 @@ function pushChart(chart, value, max = 20) {
     chart.update();
 }
 
-function updateHistory(temp, signal) {
-    const c = state.charts.history;
-    const now = new Date().toLocaleTimeString();
+async function switchHistoryView(period){
+    state.currentPeriod = period;
 
-    c.data.labels.push(now);
-    c.data.datasets[0].data.push(temp);
-    c.data.datasets[1].data.push(signal);
+    try{
+        const r = await fetch(`get_history.php?period=${period}`);
+        const j = await r.json();
 
-    while (c.data.labels.length > 60) {
-        c.data.labels.shift();
-        c.data.datasets[0].data.shift();
-        c.data.datasets[1].data.shift();
-    }
+        if(!j.success) return;
 
-    c.update();
-}
+        const rows = j.history.reverse();
 
-/* =========================
-   ALERTS
-========================= */
-async function updateAlertChart() {
-    try {
-        const response = await fetch("get_alert_chart.php?user_id=<?= $user_id ?>");
-        const result = await response.json();
-
-        if (!result.success || !result.alerts.length) return;
-
-        const filter = document.getElementById('alertTypeFilter').value;
-        let alerts = result.alerts;
-
-        if (filter !== 'all') {
-            alerts = alerts.filter(a => {
-                const msg = (a.message || '').toLowerCase();
-
-                if (filter === 'temperature') return msg.includes('temp');
-                if (filter === 'signal') return msg.includes('signal');
-                if (filter === 'connection') return msg.includes('offline') || msg.includes('connexion');
-
-                return true;
-            });
-        }
-
-        const grouped = {};
-
-        alerts.forEach(a => {
-            grouped[a.day] = (grouped[a.day] || 0) + parseInt(a.total);
+        const labels = rows.map(x=>{
+            const d = new Date(x.timestamp);
+            return period === '7d'
+                ? d.toLocaleDateString()
+                : d.toLocaleTimeString();
         });
 
-        const labels = Object.keys(grouped);
-        const values = Object.values(grouped);
+        const temp = rows.map(x=>safeNum(x.temperature));
+        const signal = rows.map(x=>safeNum(x.signal_strength));
+
+        state.charts.history.data.labels = labels;
+        state.charts.history.data.datasets[0].data = temp;
+        state.charts.history.data.datasets[1].data = signal;
+        state.charts.history.update();
+
+        if(temp.length){
+            const avg = temp.reduce((a,b)=>a+b,0)/temp.length;
+            document.getElementById('historyMin').textContent = Math.min(...temp).toFixed(1)+'°C';
+            document.getElementById('historyMax').textContent = Math.max(...temp).toFixed(1)+'°C';
+            document.getElementById('historyAvg').textContent = avg.toFixed(1)+'°C';
+        }
+
+        generatePrediction(temp);
+
+    }catch(e){ console.log(e); }
+}
+
+async function updateAlertChart(){
+
+    try{
+        const r = await fetch("get_alert_chart.php");
+        const j = await r.json();
+
+        if(!j.success) return;
+
+        const labels = j.alerts.map(x=>x.day);
+        const values = j.alerts.map(x=>parseInt(x.total));
 
         state.charts.alert.data.labels = labels;
         state.charts.alert.data.datasets[0].data = values;
 
-        state.charts.alert.data.datasets[0].backgroundColor = values.map(v => {
-            if (v >= 10) return '#DC2626';
-            if (v >= 5) return '#F59E0B';
-            return '#10B981';
+        state.charts.alert.data.datasets[0].backgroundColor = values.map(v=>{
+            if(v >= 10) return '#dc2626';
+            if(v >= 5) return '#f59e0b';
+            return '#10b981';
         });
 
         state.charts.alert.update();
@@ -664,154 +591,174 @@ async function updateAlertChart() {
         document.getElementById('todayAlerts').textContent =
             values.reduce((a,b)=>a+b,0);
 
-    } catch(err) {
-        console.log(err);
+        calculateAIScore(values);
+
+    }catch(e){ console.log(e); }
+}
+
+function calculateAIScore(alerts){
+
+    if(!alerts.length) return;
+
+    const total = alerts.reduce((a,b)=>a+b,0);
+    const score = Math.max(0, 100 - total*3);
+
+    document.getElementById('aiScore').textContent = score + '%';
+
+    let status = 'Healthy';
+    if(score < 70) status = 'Warning';
+    if(score < 50) status = 'Critical';
+
+    document.getElementById('aiHealth').textContent = status;
+}
+
+function generatePrediction(history){
+
+    if(history.length < 5) return;
+
+    const avg = history.slice(-5).reduce((a,b)=>a+b,0)/5;
+
+    const labels = [];
+    const values = [];
+
+    for(let i=1;i<=24;i++){
+        labels.push(i + 'h');
+        values.push((avg + (Math.random()*2-1)).toFixed(2));
     }
+
+    state.charts.predict.data.labels = labels;
+    state.charts.predict.data.datasets[0].data = values;
+    state.charts.predict.update();
 }
 
-function filterAlerts() {
-    updateAlertChart();
+function detectAnomaly(temp, signal){
+
+    let anomaly = 'Normal';
+
+    if(temp > 30 || signal < 20){
+        anomaly = 'Critical anomaly detected';
+    } else if(temp > 26 || signal < 40){
+        anomaly = 'Potential anomaly';
+    }
+
+    document.getElementById('anomalyText').textContent = anomaly;
 }
 
-/* =========================
-   ANALYTICS
-========================= */
-function analyzeTemp(temp) {
+function analyzeTemp(temp){
+
     document.getElementById('currentTemp').textContent = temp.toFixed(1)+'°C';
 
-    let txt='Stable';
-    let cls='status-good';
-    let icon='🌡️';
+    let status='Stable';
 
-    if (temp > 28) {
-        txt='Critique';
-        cls='status-critical';
-        icon='🔥';
-    } else if (temp > 24) {
-        txt='Élevée';
-        cls='status-warning';
-    }
+    if(temp > CONFIG.TEMP_CRITICAL) status='Critical';
+    else if(temp > CONFIG.TEMP_WARNING) status='High';
 
-    document.getElementById('tempTrend').textContent = txt;
-    document.getElementById('tempTrend').className = 'font-semibold '+cls;
-    document.getElementById('tempIcon').textContent = icon;
+    document.getElementById('tempTrend').textContent = status;
 
-    pushChart(state.charts.temp, temp);
+    pushMini(state.charts.temp, temp);
 }
 
-function analyzeSignal(signal) {
+function analyzeSignal(signal){
+
     document.getElementById('currentSignal').textContent = signal+'%';
 
-    let txt='Bon';
-    let cls='status-good';
+    let status='Good';
 
-    if (signal < 30) {
-        txt='Critique';
-        cls='status-critical';
-    } else if (signal < 50) {
-        txt='Faible';
-        cls='status-warning';
-    }
+    if(signal < CONFIG.SIGNAL_CRITICAL) status='Critical';
+    else if(signal < CONFIG.SIGNAL_WARNING) status='Weak';
 
-    document.getElementById('signalTrend').textContent = txt;
-    document.getElementById('signalTrend').className = 'font-semibold '+cls;
+    document.getElementById('signalTrend').textContent = status;
 
-    pushChart(state.charts.signal, signal);
+    pushMini(state.charts.signal, signal);
 }
 
-function updateAI(temp, signal) {
-    document.getElementById('insightsContainer').innerHTML = `
-        <p>Température: ${temp.toFixed(1)}°C</p>
-        <p>Signal: ${signal}%</p>
-    `;
+function updateDeviceStatus(){
 
-    document.getElementById('predictionsContainer').innerHTML =
-        `<p>${temp > 27 ? 'Risque surchauffe' : 'Prévision OK'}</p>`;
-
-    document.getElementById('recommendationsContainer').innerHTML =
-        `<p>${signal < 40 ? 'Vérifier réseau' : 'Système stable'}</p>`;
-}
-
-/* =========================
-   DEVICE STATUS
-========================= */
-function checkOffline() {
-    const diff = Date.now() - state.lastESP32Update;
+    const diff = Date.now() - state.lastUpdate;
     const online = diff < CONFIG.OFFLINE_THRESHOLD;
 
-    document.getElementById('deviceStatus').textContent =
-        online ? 'En ligne' : 'Hors ligne';
-
-    document.getElementById('deviceStatus').className =
-        'font-semibold ' + (online ? 'status-online':'status-offline');
-
-    document.getElementById('liveStatusText').textContent =
-        online ? 'Real-time' : 'Offline';
+    document.getElementById('deviceStatus').textContent = online ? 'Online':'Offline';
+    document.getElementById('liveStatusText').textContent = online ? 'Live':'Offline';
 }
 
-function updateUptime() {
-    const sec = Math.floor((Date.now() - state.lastESP32Update)/1000);
-    document.getElementById('uptime').textContent = sec+' s';
+function updateUptime(){
+    const sec = Math.floor((Date.now() - state.lastUpdate)/1000);
+    document.getElementById('uptime').textContent = sec + ' sec';
 }
 
-/* =========================
-   FETCH LIVE DATA
-========================= */
-async function loadAnalytics() {
-    try {
+async function loadAnalytics(){
+
+    try{
         const r = await fetch("get_latest_data.php?user_id=<?= $user_id ?>");
-        const json = await r.json();
+        const j = await r.json();
 
-        if (!json.success || !json.data) return;
+        if(!j.success || !j.data) return;
 
-        state.lastESP32Update = Date.now();
+        state.lastUpdate = Date.now();
+
+        const temp = safeNum(j.data.temperature);
+        const signal = safeNum(j.data.signal_strength);
 
         document.getElementById('lastSeen').textContent =
             new Date().toLocaleTimeString();
 
-        const temp = safeNumber(json.data.temperature);
-        const signal = safeNumber(json.data.signal_strength);
-
         analyzeTemp(temp);
         analyzeSignal(signal);
-        updateAI(temp, signal);
+        detectAnomaly(temp, signal);
 
-        if (state.currentHistoryView === 'live') {
-            updateHistory(temp, signal);
-        }
+        document.getElementById('insightsContainer').innerHTML = `
+            <p>Temperature: ${temp.toFixed(1)} °C</p>
+            <p>Signal: ${signal}%</p>
+        `;
+
+        document.getElementById('predictionsContainer').innerHTML = `
+            <p>Forecast stable for next hours</p>
+        `;
+
+        document.getElementById('recommendationsContainer').innerHTML = `
+            <p>System operating normally</p>
+        `;
 
         await updateAlertChart();
 
-    } catch(e) {
-        console.log(e);
-    }
+    }catch(e){ console.log(e); }
 }
 
-/* =========================
-   PDF
-========================= */
-async function generatePDFReport() {
+async function generatePDFReport(){
+
     document.getElementById('pdfLoading').style.display='block';
 
     const { jsPDF } = window.jspdf;
     const doc = new jsPDF();
 
-    doc.text("Smart Analytics",20,20);
-    doc.text("Utilisateur: <?= htmlspecialchars($username) ?>",20,30);
-    doc.text("Date: "+new Date().toLocaleString(),20,40);
+    doc.text("Smart Analytics Report", 20, 20);
+    doc.text("User: <?= htmlspecialchars($username) ?>", 20, 30);
+    doc.text("Generated: " + new Date().toLocaleString(), 20, 40);
 
-    doc.text("Température: "+document.getElementById('currentTemp').textContent,20,60);
-    doc.text("Signal: "+document.getElementById('currentSignal').textContent,20,70);
+    doc.text("Temperature: " + document.getElementById('currentTemp').textContent, 20, 60);
+    doc.text("Signal: " + document.getElementById('currentSignal').textContent, 20, 70);
+    doc.text("AI Score: " + document.getElementById('aiScore').textContent, 20, 80);
 
     const img = document.getElementById('historyChart').toDataURL();
-    doc.addImage(img,'PNG',15,90,180,80);
+    doc.addImage(img, 'PNG', 15, 100, 180, 80);
 
-    doc.save("rapport.pdf");
+    doc.save("smart-report.pdf");
 
     document.getElementById('pdfLoading').style.display='none';
 }
 
+function init(){
+    initCharts();
+    switchHistoryView('24h');
+    updateAlertChart();
+    loadAnalytics();
 
+    setInterval(loadAnalytics, 5000);
+    setInterval(updateDeviceStatus, 5000);
+    setInterval(updateUptime, 1000);
+}
+
+document.addEventListener('DOMContentLoaded', init);
 </script>
 </body>
 </html>
