@@ -1,7 +1,13 @@
 <?php
 session_start();
-$user_id = $_SESSION['user_id'] ?? 1;
-$username = $_SESSION['username'] ?? 'Utilisateur';
+
+if (!isset($_SESSION['user_id'])) {
+    header("Location: login.html");
+    exit;
+}
+
+$user_id = $_SESSION['user_id'];
+$username = $_SESSION['username'] ?? $_SESSION['name'] ?? 'User';
 ?>
 <!DOCTYPE html>
 <html lang="fr">
@@ -500,38 +506,72 @@ function updateHistoryStats() {
         avg(temp).toFixed(1)+'°C';
 }
 
-function addAlert(type, severity, msg) {
-    const hash = type + msg;
+function addAlert(type, severity, message) {
+    const exists = state.alerts.find(a =>
+        a.type === type &&
+        a.message === message &&
+        (Date.now() - new Date(a.timestamp).getTime()) < 60000
+    );
 
-    if (state.lastAlertHash === hash) return;
-    state.lastAlertHash = hash;
+    if (exists) return;
 
     state.alerts.push({
+        timestamp: new Date().toISOString(),
         type,
         severity,
-        message: msg,
-        timestamp: new Date()
+        message
     });
 
+    state.alertCount++;
     updateAlertChart();
 }
 
 function updateAlertChart() {
-    const c = state.charts.alert;
+    const chart = state.charts.alert;
+    if (!chart) return;
+
+    const filter = document.getElementById('alertTypeFilter').value;
+
+    let filteredAlerts = [...state.alerts];
+
+    if (filter !== 'all') {
+        filteredAlerts = filteredAlerts.filter(a => a.type === filter);
+    }
 
     const grouped = {};
 
-    state.alerts.forEach(a => {
-        const h = a.timestamp.getHours() + ':00';
-        grouped[h] = (grouped[h] || 0) + 1;
+    filteredAlerts.forEach(alert => {
+        const date = new Date(alert.timestamp);
+        const hour = date.getHours().toString().padStart(2, '0') + ":00";
+
+        if (!grouped[hour]) grouped[hour] = 0;
+        grouped[hour]++;
     });
 
-    c.data.labels = Object.keys(grouped);
-    c.data.datasets[0].data = Object.values(grouped);
-    c.data.datasets[0].backgroundColor = Object.keys(grouped).map(()=>'#ef4444');
-    c.update();
+    const labels = Object.keys(grouped);
 
-    document.getElementById('todayAlerts').textContent = state.alerts.length;
+    if (labels.length === 0) {
+        chart.data.labels = ['Aucune'];
+        chart.data.datasets[0].data = [0];
+        chart.data.datasets[0].backgroundColor = ['#D1D5DB'];
+        chart.update();
+        document.getElementById('todayAlerts').textContent = 0;
+        return;
+    }
+
+    chart.data.labels = labels;
+    chart.data.datasets[0].data = labels.map(h => grouped[h]);
+    chart.data.datasets[0].backgroundColor = labels.map(() => '#EF4444');
+
+    const today = new Date().toDateString();
+
+    const todayCount = state.alerts.filter(a =>
+        new Date(a.timestamp).toDateString() === today
+    ).length;
+
+    document.getElementById('todayAlerts').textContent = todayCount;
+
+    chart.update();
 }
 
 function checkAlerts(temp, signal) {
