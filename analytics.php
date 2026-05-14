@@ -382,17 +382,20 @@ $username = $_SESSION['user_name'] ?? 'User';
         }
     }
 
+       // Fonction pour mettre à jour le graphique d'alertes
     async function updateAlertChart() {
         try {
             const filter = document.getElementById('alertTypeFilter')?.value || 'all';
             const response = await fetch(`get_alert_chart.php?filter=${filter}&user_id=<?= $user_id ?>`);
             const data = await response.json();
 
-            if (data.success && data.alerts) {
+            console.log('Alert data received:', data);
+
+            if (data.success && data.alerts && data.alerts.length > 0) {
                 const labels = data.alerts.map(x => x.day);
                 
                 if (filter === 'all') {
-                    // Afficher les alertes par type
+                    // Afficher les 3 types d'alertes
                     const tempData = data.alerts.map(x => x.temperature || 0);
                     const signalData = data.alerts.map(x => x.signal || 0);
                     const connData = data.alerts.map(x => x.connection || 0);
@@ -405,31 +408,160 @@ $username = $_SESSION['user_name'] ?? 'User';
                         state.charts.alert.update();
                     }
                     
-                    const todayTotal = (tempData[tempData.length-1] || 0) + (signalData[signalData.length-1] || 0) + (connData[connData.length-1] || 0);
-                    document.getElementById('todayAlerts').textContent = todayTotal;
+                    // Mettre à jour le compteur d'alertes du jour avec détails
+                    const todaySpan = document.getElementById('todayAlerts');
+                    if (todaySpan) {
+                        todaySpan.innerHTML = `${data.today || 0}<span class="text-xs ml-1">(${data.todayCritical || 0} C, ${data.todayWarning || 0} W, ${data.todayInfo || 0} I)</span>`;
+                    }
                     
-                    const totalAlerts = tempData.reduce((a,b) => a+b, 0) + signalData.reduce((a,b) => a+b, 0) + connData.reduce((a,b) => a+b, 0);
-                    calculateAIScore(totalAlerts);
+                    // Calculer le score IA basé sur le total des alertes
+                    calculateAIScore(data.total || 0);
                     
                 } else {
                     // Afficher juste le type sélectionné
-                    const alertData = data.alerts.map(x => x.total || 0);
+                    let alertData = [];
+                    let alertTypeName = '';
+                    
+                    if (filter === 'temperature') {
+                        alertData = data.alerts.map(x => x.temperature || 0);
+                        alertTypeName = 'Temperature';
+                    } else if (filter === 'signal') {
+                        alertData = data.alerts.map(x => x.signal || 0);
+                        alertTypeName = 'Signal';
+                    } else {
+                        alertData = data.alerts.map(x => x.connection || 0);
+                        alertTypeName = 'Connection';
+                    }
+                    
                     if (state.charts.alert) {
                         state.charts.alert.data.labels = labels;
                         state.charts.alert.data.datasets[0].data = alertData;
+                        state.charts.alert.data.datasets[0].label = `${alertTypeName} Alerts`;
                         state.charts.alert.data.datasets[1].data = [];
                         state.charts.alert.data.datasets[2].data = [];
                         state.charts.alert.update();
                     }
-                    const todayTotal = alertData[alertData.length-1] || 0;
-                    document.getElementById('todayAlerts').textContent = todayTotal;
                     
-                    const totalAlerts = alertData.reduce((a,b) => a+b, 0);
+                    const todayTotal = alertData[alertData.length - 1] || 0;
+                    const todaySpan = document.getElementById('todayAlerts');
+                    if (todaySpan) todaySpan.textContent = todayTotal;
+                    
+                    const totalAlerts = alertData.reduce((a, b) => a + b, 0);
                     calculateAIScore(totalAlerts);
                 }
+            } else {
+                console.log('No alert data available, using defaults');
+                // Initialiser avec des données vides
+                const emptyLabels = [];
+                for (let i = 6; i >= 0; i--) {
+                    const d = new Date();
+                    d.setDate(d.getDate() - i);
+                    emptyLabels.push(d.getDate() + '/' + (d.getMonth() + 1));
+                }
+                
+                if (state.charts.alert) {
+                    state.charts.alert.data.labels = emptyLabels;
+                    if (filter === 'all') {
+                        state.charts.alert.data.datasets[0].data = new Array(7).fill(0);
+                        state.charts.alert.data.datasets[1].data = new Array(7).fill(0);
+                        state.charts.alert.data.datasets[2].data = new Array(7).fill(0);
+                    } else {
+                        state.charts.alert.data.datasets[0].data = new Array(7).fill(0);
+                        state.charts.alert.data.datasets[1].data = [];
+                        state.charts.alert.data.datasets[2].data = [];
+                    }
+                    state.charts.alert.update();
+                }
+                const todaySpan = document.getElementById('todayAlerts');
+                if (todaySpan) todaySpan.textContent = '0';
+                calculateAIScore(0);
             }
         } catch (e) {
             console.error('Error loading alerts:', e);
+            calculateAIScore(0);
+        }
+    }
+
+    function calculateAIScore(totalAlerts) {
+        // Calcul du score: 100 - (alertes * 3) avec un minimum de 0 et maximum de 100
+        let score = 100 - (totalAlerts * 3);
+        score = Math.max(0, Math.min(100, score));
+        
+        const aiScoreSpan = document.getElementById('aiScore');
+        if (aiScoreSpan) {
+            aiScoreSpan.textContent = score + '%';
+            
+            // Changer la couleur selon le score
+            if (score >= 80) {
+                aiScoreSpan.className = 'text-2xl font-bold text-green-600';
+            } else if (score >= 50) {
+                aiScoreSpan.className = 'text-2xl font-bold text-orange-500';
+            } else {
+                aiScoreSpan.className = 'text-2xl font-bold text-red-600';
+            }
+        }
+        
+        // Mettre à jour l'anomalie detection avec plus de détails
+        const anomalySpan = document.getElementById('anomalyText');
+        if (anomalySpan) {
+            if (score >= 80) {
+                anomalySpan.textContent = '🟢 System正常运行 - No anomalies detected';
+                anomalySpan.className = 'text-sm font-medium px-3 py-1 rounded-full bg-green-100 text-green-700';
+            } else if (score >= 50) {
+                anomalySpan.textContent = '🟡 Potential anomalies detected - Monitor recommended';
+                anomalySpan.className = 'text-sm font-medium px-3 py-1 rounded-full bg-yellow-100 text-yellow-700';
+            } else {
+                anomalySpan.textContent = '🔴 Critical anomalies detected - Immediate action required';
+                anomalySpan.className = 'text-sm font-medium px-3 py-1 rounded-full bg-red-100 text-red-700';
+            }
+        }
+        
+        // Mettre à jour le statut IA
+        const aiStatusSpan = document.getElementById('aiStatus');
+        if (aiStatusSpan) {
+            if (score >= 80) {
+                aiStatusSpan.innerHTML = '● Optimal';
+                aiStatusSpan.className = 'text-sm font-semibold text-green-600';
+            } else if (score >= 50) {
+                aiStatusSpan.innerHTML = '● Warning';
+                aiStatusSpan.className = 'text-sm font-semibold text-orange-500';
+            } else {
+                aiStatusSpan.innerHTML = '● Critical';
+                aiStatusSpan.className = 'text-sm font-semibold text-red-600';
+            }
+        }
+    }
+
+    // Fonction pour ajouter une alerte manuellement (pour tester)
+    async function addTestAlert(type, severity) {
+        const types = ['temperature', 'signal', 'connection'];
+        const severities = ['critical', 'warning', 'info'];
+        const messages = {
+            temperature: 'Temperature threshold exceeded',
+            signal: 'Signal strength degraded',
+            connection: 'Connection interrupted'
+        };
+        
+        const formData = new FormData();
+        formData.append('type', type);
+        formData.append('severity', severity);
+        formData.append('message', messages[type]);
+        formData.append('location', 'ESP32 Sensor');
+        formData.append('user_id', '<?= $user_id ?>');
+        
+        try {
+            const response = await fetch('create_alert.php', {
+                method: 'POST',
+                body: formData
+            });
+            const data = await response.json();
+            if (data.success) {
+                console.log('Test alert added');
+                await updateAlertChart();
+                await loadAnalytics();
+            }
+        } catch(e) {
+            console.error('Error adding test alert:', e);
         }
     }
 
