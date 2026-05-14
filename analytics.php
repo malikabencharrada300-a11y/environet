@@ -292,11 +292,7 @@ $username = $_SESSION['user_name'] ?? 'User';
         currentPeriod: '24h',
         tempHistory: [],
         signalHistory: [],
-        alertData: {
-            temperature: [],
-            signal: [],
-            connection: []
-        }
+        alertChartInitialized: false
     };
 
     function safeNum(v) {
@@ -305,6 +301,8 @@ $username = $_SESSION['user_name'] ?? 'User';
     }
 
     function initCharts() {
+        console.log('Initializing charts...');
+        
         // Temperature chart
         const tempCtx = document.getElementById('tempTrendChart');
         if (tempCtx) {
@@ -349,7 +347,7 @@ $username = $_SESSION['user_name'] ?? 'User';
             });
         }
 
-        // Alert chart
+        // Alert chart - Version corrigée pour PostgreSQL
         const alertCtx = document.getElementById('alertChart');
         if (alertCtx) {
             state.charts.alert = new Chart(alertCtx.getContext('2d'), {
@@ -357,18 +355,36 @@ $username = $_SESSION['user_name'] ?? 'User';
                 data: { 
                     labels: [], 
                     datasets: [
-                        { label: 'Temperature Alerts', data: [], backgroundColor: '#dc2626', borderRadius: 8 },
-                        { label: 'Signal Alerts', data: [], backgroundColor: '#f59e0b', borderRadius: 8 },
-                        { label: 'Connection Alerts', data: [], backgroundColor: '#3b82f6', borderRadius: 8 }
+                        { label: '🌡️ Temperature Alerts', data: [], backgroundColor: '#dc2626', borderRadius: 8 },
+                        { label: '📶 Signal Alerts', data: [], backgroundColor: '#f59e0b', borderRadius: 8 },
+                        { label: '🔌 Connection Alerts', data: [], backgroundColor: '#3b82f6', borderRadius: 8 }
                     ] 
                 },
                 options: {
                     responsive: true,
                     maintainAspectRatio: false,
-                    plugins: { legend: { position: 'top' } },
-                    scales: { y: { beginAtZero: true, title: { display: true, text: 'Number of Alerts' } } }
+                    plugins: { 
+                        legend: { position: 'top' },
+                        tooltip: { 
+                            callbacks: { 
+                                label: function(context) { 
+                                    return context.dataset.label + ': ' + context.raw + ' alerts'; 
+                                } 
+                            } 
+                        }
+                    },
+                    scales: { 
+                        y: { 
+                            beginAtZero: true, 
+                            title: { display: true, text: 'Number of Alerts' }, 
+                            stepSize: 1,
+                            ticks: { precision: 0 }
+                        } 
+                    }
                 }
             });
+            state.alertChartInitialized = true;
+            console.log('Alert chart initialized');
         }
 
         // Prediction chart
@@ -382,65 +398,83 @@ $username = $_SESSION['user_name'] ?? 'User';
         }
     }
 
-       // Fonction pour mettre à jour le graphique d'alertes
+    // Fonction pour mettre à jour le graphique d'alertes - CORRIGÉE
     async function updateAlertChart() {
+        console.log('Updating alert chart...');
+        
+        if (!state.charts.alert) {
+            console.error('Alert chart not initialized');
+            return;
+        }
+        
         try {
             const filter = document.getElementById('alertTypeFilter')?.value || 'all';
+            console.log('Filter:', filter);
+            
             const response = await fetch(`get_alert_chart.php?filter=${filter}&user_id=<?= $user_id ?>`);
             const data = await response.json();
-
-            console.log('Alert data received:', data);
+            
+            console.log('API Response:', data);
 
             if (data.success && data.alerts && data.alerts.length > 0) {
+                // Extraire les labels (jours)
                 const labels = data.alerts.map(x => x.day);
+                console.log('Labels:', labels);
                 
                 if (filter === 'all') {
-                    // Afficher les 3 types d'alertes
+                    // Données pour les 3 types d'alertes
                     const tempData = data.alerts.map(x => x.temperature || 0);
                     const signalData = data.alerts.map(x => x.signal || 0);
                     const connData = data.alerts.map(x => x.connection || 0);
                     
-                    if (state.charts.alert) {
-                        state.charts.alert.data.labels = labels;
-                        state.charts.alert.data.datasets[0].data = tempData;
-                        state.charts.alert.data.datasets[1].data = signalData;
-                        state.charts.alert.data.datasets[2].data = connData;
-                        state.charts.alert.update();
-                    }
+                    console.log('Temperature data:', tempData);
+                    console.log('Signal data:', signalData);
+                    console.log('Connection data:', connData);
                     
-                    // Mettre à jour le compteur d'alertes du jour avec détails
+                    // Mettre à jour le graphique
+                    state.charts.alert.data.labels = labels;
+                    state.charts.alert.data.datasets[0].data = tempData;
+                    state.charts.alert.data.datasets[1].data = signalData;
+                    state.charts.alert.data.datasets[2].data = connData;
+                    state.charts.alert.update();
+                    
+                    // Mettre à jour le compteur d'alertes du jour
                     const todaySpan = document.getElementById('todayAlerts');
                     if (todaySpan) {
-                        todaySpan.innerHTML = `${data.today || 0}<span class="text-xs ml-1">(${data.todayCritical || 0} C, ${data.todayWarning || 0} W, ${data.todayInfo || 0} I)</span>`;
+                        const todayTotal = data.today || 0;
+                        todaySpan.innerHTML = `${todayTotal}`;
                     }
                     
-                    // Calculer le score IA basé sur le total des alertes
+                    // Calculer le score IA
                     calculateAIScore(data.total || 0);
                     
                 } else {
-                    // Afficher juste le type sélectionné
+                    // Filtrer par type spécifique
                     let alertData = [];
-                    let alertTypeName = '';
+                    let alertColor = '#dc2626';
+                    let alertLabel = '';
                     
                     if (filter === 'temperature') {
                         alertData = data.alerts.map(x => x.temperature || 0);
-                        alertTypeName = 'Temperature';
+                        alertColor = '#dc2626';
+                        alertLabel = '🌡️ Temperature Alerts';
                     } else if (filter === 'signal') {
                         alertData = data.alerts.map(x => x.signal || 0);
-                        alertTypeName = 'Signal';
+                        alertColor = '#f59e0b';
+                        alertLabel = '📶 Signal Alerts';
                     } else {
                         alertData = data.alerts.map(x => x.connection || 0);
-                        alertTypeName = 'Connection';
+                        alertColor = '#3b82f6';
+                        alertLabel = '🔌 Connection Alerts';
                     }
                     
-                    if (state.charts.alert) {
-                        state.charts.alert.data.labels = labels;
-                        state.charts.alert.data.datasets[0].data = alertData;
-                        state.charts.alert.data.datasets[0].label = `${alertTypeName} Alerts`;
-                        state.charts.alert.data.datasets[1].data = [];
-                        state.charts.alert.data.datasets[2].data = [];
-                        state.charts.alert.update();
-                    }
+                    state.charts.alert.data.labels = labels;
+                    state.charts.alert.data.datasets[0].data = alertData;
+                    state.charts.alert.data.datasets[0].label = alertLabel;
+                    state.charts.alert.data.datasets[0].backgroundColor = alertColor;
+                    state.charts.alert.data.datasets[1].data = [];
+                    state.charts.alert.data.datasets[2].data = [];
+                    state.charts.alert.update();
                     
                     const todayTotal = alertData[alertData.length - 1] || 0;
                     const todaySpan = document.getElementById('todayAlerts');
@@ -450,8 +484,8 @@ $username = $_SESSION['user_name'] ?? 'User';
                     calculateAIScore(totalAlerts);
                 }
             } else {
-                console.log('No alert data available, using defaults');
-                // Initialiser avec des données vides
+                console.log('No data, using zeros');
+                // Initialiser avec des zéros
                 const emptyLabels = [];
                 for (let i = 6; i >= 0; i--) {
                     const d = new Date();
@@ -459,39 +493,30 @@ $username = $_SESSION['user_name'] ?? 'User';
                     emptyLabels.push(d.getDate() + '/' + (d.getMonth() + 1));
                 }
                 
-                if (state.charts.alert) {
-                    state.charts.alert.data.labels = emptyLabels;
-                    if (filter === 'all') {
-                        state.charts.alert.data.datasets[0].data = new Array(7).fill(0);
-                        state.charts.alert.data.datasets[1].data = new Array(7).fill(0);
-                        state.charts.alert.data.datasets[2].data = new Array(7).fill(0);
-                    } else {
-                        state.charts.alert.data.datasets[0].data = new Array(7).fill(0);
-                        state.charts.alert.data.datasets[1].data = [];
-                        state.charts.alert.data.datasets[2].data = [];
-                    }
-                    state.charts.alert.update();
-                }
+                state.charts.alert.data.labels = emptyLabels;
+                state.charts.alert.data.datasets[0].data = [0, 0, 0, 0, 0, 0, 0];
+                state.charts.alert.data.datasets[1].data = [0, 0, 0, 0, 0, 0, 0];
+                state.charts.alert.data.datasets[2].data = [0, 0, 0, 0, 0, 0, 0];
+                state.charts.alert.update();
+                
                 const todaySpan = document.getElementById('todayAlerts');
                 if (todaySpan) todaySpan.textContent = '0';
                 calculateAIScore(0);
             }
-        } catch (e) {
-            console.error('Error loading alerts:', e);
-            calculateAIScore(0);
+        } catch (error) {
+            console.error('Error in updateAlertChart:', error);
         }
     }
 
     function calculateAIScore(totalAlerts) {
-        // Calcul du score: 100 - (alertes * 3) avec un minimum de 0 et maximum de 100
-        let score = 100 - (totalAlerts * 3);
+        // Calcul du score: 100 - (alertes * 5)
+        let score = 100 - (totalAlerts * 5);
         score = Math.max(0, Math.min(100, score));
         
         const aiScoreSpan = document.getElementById('aiScore');
         if (aiScoreSpan) {
             aiScoreSpan.textContent = score + '%';
             
-            // Changer la couleur selon le score
             if (score >= 80) {
                 aiScoreSpan.className = 'text-2xl font-bold text-green-600';
             } else if (score >= 50) {
@@ -501,17 +526,17 @@ $username = $_SESSION['user_name'] ?? 'User';
             }
         }
         
-        // Mettre à jour l'anomalie detection avec plus de détails
+        // Mettre à jour l'anomalie detection
         const anomalySpan = document.getElementById('anomalyText');
         if (anomalySpan) {
             if (score >= 80) {
-                anomalySpan.textContent = '🟢 System正常运行 - No anomalies detected';
+                anomalySpan.textContent = '🟢 Normal operation';
                 anomalySpan.className = 'text-sm font-medium px-3 py-1 rounded-full bg-green-100 text-green-700';
             } else if (score >= 50) {
-                anomalySpan.textContent = '🟡 Potential anomalies detected - Monitor recommended';
+                anomalySpan.textContent = '🟡 Potential anomaly detected';
                 anomalySpan.className = 'text-sm font-medium px-3 py-1 rounded-full bg-yellow-100 text-yellow-700';
             } else {
-                anomalySpan.textContent = '🔴 Critical anomalies detected - Immediate action required';
+                anomalySpan.textContent = '🔴 Critical anomaly detected';
                 anomalySpan.className = 'text-sm font-medium px-3 py-1 rounded-full bg-red-100 text-red-700';
             }
         }
@@ -520,7 +545,7 @@ $username = $_SESSION['user_name'] ?? 'User';
         const aiStatusSpan = document.getElementById('aiStatus');
         if (aiStatusSpan) {
             if (score >= 80) {
-                aiStatusSpan.innerHTML = '● Optimal';
+                aiStatusSpan.innerHTML = '● Active';
                 aiStatusSpan.className = 'text-sm font-semibold text-green-600';
             } else if (score >= 50) {
                 aiStatusSpan.innerHTML = '● Warning';
@@ -532,55 +557,8 @@ $username = $_SESSION['user_name'] ?? 'User';
         }
     }
 
-    // Fonction pour ajouter une alerte manuellement (pour tester)
-    async function addTestAlert(type, severity) {
-        const types = ['temperature', 'signal', 'connection'];
-        const severities = ['critical', 'warning', 'info'];
-        const messages = {
-            temperature: 'Temperature threshold exceeded',
-            signal: 'Signal strength degraded',
-            connection: 'Connection interrupted'
-        };
-        
-        const formData = new FormData();
-        formData.append('type', type);
-        formData.append('severity', severity);
-        formData.append('message', messages[type]);
-        formData.append('location', 'ESP32 Sensor');
-        formData.append('user_id', '<?= $user_id ?>');
-        
-        try {
-            const response = await fetch('create_alert.php', {
-                method: 'POST',
-                body: formData
-            });
-            const data = await response.json();
-            if (data.success) {
-                console.log('Test alert added');
-                await updateAlertChart();
-                await loadAnalytics();
-            }
-        } catch(e) {
-            console.error('Error adding test alert:', e);
-        }
-    }
-
-    function calculateAIScore(totalAlerts) {
-        const score = Math.max(0, Math.min(100, 100 - totalAlerts * 2));
-        const aiScoreSpan = document.getElementById('aiScore');
-        if (aiScoreSpan) {
-            aiScoreSpan.textContent = score + '%';
-            if (score >= 80) {
-                aiScoreSpan.className = 'text-2xl font-bold text-green-600';
-            } else if (score >= 50) {
-                aiScoreSpan.className = 'text-2xl font-bold text-orange-500';
-            } else {
-                aiScoreSpan.className = 'text-2xl font-bold text-red-600';
-            }
-        }
-    }
-
     function filterAlerts() {
+        console.log('Filter changed, reloading alerts...');
         updateAlertChart();
     }
 
@@ -689,7 +667,7 @@ $username = $_SESSION['user_name'] ?? 'User';
             predictions.push('<div class="insight-item">📶 Signal forecast: ' + avgSignal.toFixed(0) + '%</div>');
         }
         
-        const stabilityScore = Math.min(100, Math.max(0, 100 - (Date.now() - state.lastUpdate) / 1000));
+        const stabilityScore = Math.min(100, Math.max(0, 100 - (Date.now() - state.lastUpdate) / 600));
         predictions.push('<div class="insight-item">🔧 Stability: ' + stabilityScore.toFixed(0) + '%</div>');
         
         container.innerHTML = predictions.join('');
@@ -735,7 +713,10 @@ $username = $_SESSION['user_name'] ?? 'User';
             icon = '🌡️';
         }
         
-        if (tempTrend) tempTrend.textContent = status;
+        if (tempTrend) {
+            tempTrend.textContent = status;
+            tempTrend.className = `font-semibold ${status === 'Critical' ? 'status-critical' : (status === 'High' ? 'status-warning' : 'status-good')}`;
+        }
         if (tempIcon) tempIcon.textContent = icon;
         
         if (state.charts.temp) {
@@ -770,7 +751,10 @@ $username = $_SESSION['user_name'] ?? 'User';
             icon = '📶';
         }
         
-        if (signalTrend) signalTrend.textContent = status;
+        if (signalTrend) {
+            signalTrend.textContent = status;
+            signalTrend.className = `font-semibold ${status === 'Critical' ? 'status-critical' : (status === 'Weak' ? 'status-warning' : 'status-good')}`;
+        }
         if (signalIcon) signalIcon.textContent = icon;
         
         if (state.charts.signal) {
@@ -818,39 +802,24 @@ $username = $_SESSION['user_name'] ?? 'User';
             const response = await fetch(`get_latest_data.php?user_id=<?= $user_id ?>`);
             const data = await response.json();
 
-            if (!data.success || !data.data) return;
+            if (data.success && data.data) {
+                state.lastUpdate = Date.now();
+                
+                const lastSeenSpan = document.getElementById('lastSeen');
+                if (lastSeenSpan) lastSeenSpan.textContent = new Date().toLocaleTimeString();
 
-            state.lastUpdate = Date.now();
-            
-            const lastSeenSpan = document.getElementById('lastSeen');
-            if (lastSeenSpan) lastSeenSpan.textContent = new Date().toLocaleTimeString();
+                const temperature = safeNum(data.data.temperature);
+                const signal = safeNum(data.data.signal_strength);
 
-            const temperature = safeNum(data.data.temperature);
-            const signal = safeNum(data.data.signal_strength);
-
-            analyzeTemperature(temperature);
-            analyzeSignal(signal);
-            
-            updateInsights(temperature, signal);
-            updatePredictions(temperature, signal);
-            updateRecommendations(temperature, signal);
-            
-            const anomalyText = document.getElementById('anomalyText');
-            if (anomalyText) {
-                if (temperature > 30 || signal < 20) {
-                    anomalyText.textContent = '🔴 Critical anomaly detected';
-                    anomalyText.className = 'text-sm font-medium px-3 py-1 rounded-full bg-red-100 text-red-700';
-                } else if (temperature > 26 || signal < 40) {
-                    anomalyText.textContent = '🟡 Potential anomaly detected';
-                    anomalyText.className = 'text-sm font-medium px-3 py-1 rounded-full bg-yellow-100 text-yellow-700';
-                } else {
-                    anomalyText.textContent = '🟢 Normal operation';
-                    anomalyText.className = 'text-sm font-medium px-3 py-1 rounded-full bg-green-100 text-green-700';
-                }
+                analyzeTemperature(temperature);
+                analyzeSignal(signal);
+                
+                updateInsights(temperature, signal);
+                updatePredictions(temperature, signal);
+                updateRecommendations(temperature, signal);
+                
+                await updateAlertChart();
             }
-            
-            await updateAlertChart();
-            
         } catch (error) {
             console.error('Error loading analytics:', error);
         }
@@ -908,9 +877,14 @@ $username = $_SESSION['user_name'] ?? 'User';
     }
 
     function init() {
+        console.log('Initializing application...');
         initCharts();
-        loadAnalytics();
-        switchHistoryView('24h');
+        
+        setTimeout(() => {
+            loadAnalytics();
+            switchHistoryView('24h');
+            updateAlertChart();
+        }, 500);
         
         setInterval(loadAnalytics, CONFIG.UPDATE_INTERVAL);
         setInterval(updateDeviceStatus, CONFIG.UPDATE_INTERVAL);
@@ -920,6 +894,6 @@ $username = $_SESSION['user_name'] ?? 'User';
     }
 
     document.addEventListener('DOMContentLoaded', init);
-    </script>
+</script>
 </body>
 </html>
