@@ -430,39 +430,56 @@ function addAlert(type, message) {
     updateAlertChart();
 }
 
-function updateAlertChart() {
+async function updateAlertChart() {
+    try {
+        const response = await fetch("get_alerts.php?user_id=<?= $user_id ?>");
+        const result = await response.json();
 
-    const filter = document.getElementById('alertTypeFilter').value;
+        if (!result.success || !result.alerts || result.alerts.length === 0) {
+            state.charts.alert.data.labels = ['Aucune'];
+            state.charts.alert.data.datasets[0].data = [0];
+            state.charts.alert.data.datasets[0].backgroundColor = ['#D1D5DB'];
+            state.charts.alert.update();
+            document.getElementById('todayAlerts').textContent = 0;
+            return;
+        }
 
-    let arr = [...state.alerts];
+        const filter = document.getElementById('alertTypeFilter').value;
+        let alerts = result.alerts;
 
-    if (filter !== 'all') {
-        arr = arr.filter(a => a.type === filter);
-    }
+        if (filter !== 'all') {
+            alerts = alerts.filter(a => {
+                return (a.message || '').toLowerCase().includes(filter);
+            });
+        }
 
-    const grouped = {};
+        const grouped = {};
 
-    arr.forEach(a => {
-        grouped[a.hour] = (grouped[a.hour] || 0) + 1;
-    });
+        alerts.forEach(alert => {
+            const d = new Date(alert.created_at || alert.timestamp || Date.now());
+            const h = d.getHours().toString().padStart(2,'0') + ":00";
+            grouped[h] = (grouped[h] || 0) + 1;
+        });
 
-    const labels = Object.keys(grouped);
+        const labels = Object.keys(grouped);
 
-    if (!labels.length) {
-        state.charts.alert.data.labels = ['Aucune'];
-        state.charts.alert.data.datasets[0].data = [0];
-        state.charts.alert.data.datasets[0].backgroundColor = ['#D1D5DB'];
+        state.charts.alert.data.labels = labels;
+        state.charts.alert.data.datasets[0].data = labels.map(h => grouped[h]);
+        state.charts.alert.data.datasets[0].backgroundColor = labels.map(() => '#EF4444');
         state.charts.alert.update();
-        return;
+
+        const today = new Date().toDateString();
+
+        const todayCount = alerts.filter(a => {
+            const d = new Date(a.created_at || a.timestamp);
+            return d.toDateString() === today;
+        }).length;
+
+        document.getElementById('todayAlerts').textContent = todayCount;
+
+    } catch (err) {
+        console.error("Alert chart error:", err);
     }
-
-    state.charts.alert.data.labels = labels;
-    state.charts.alert.data.datasets[0].data = labels.map(h => grouped[h]);
-    state.charts.alert.data.datasets[0].backgroundColor = labels.map(()=> '#EF4444');
-    state.charts.alert.update();
-
-    document.getElementById('todayAlerts').textContent =
-        state.alerts.filter(a => a.date === new Date().toDateString()).length;
 }
 
 function filterAlerts() {
@@ -545,9 +562,7 @@ function updateUptime() {
 }
 
 async function loadAnalytics() {
-
     try {
-
         const r = await fetch("get_latest_data.php?user_id=<?= $user_id ?>");
         const json = await r.json();
 
@@ -564,6 +579,8 @@ async function loadAnalytics() {
         analyzeSignal(signal);
         updateHistory(temp, signal);
         updateAI(temp, signal);
+
+        await updateAlertChart();
 
     } catch(e) {
         console.log(e);
