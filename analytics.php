@@ -271,9 +271,9 @@ $username = $_SESSION['user_name'] ?? 'User';
                 <div class="flex items-center justify-between mb-4">
                     <h3 class="font-bold text-lg">📊 Courbe d'Historique</h3>
                     <div class="flex space-x-2">
-                        <button onclick="switchHistoryView('1h')" class="px-3 py-1 text-sm rounded bg-gray-100 hover:bg-gray-200">1h</button>
-                        <button onclick="switchHistoryView('24h')" class="px-3 py-1 text-sm rounded bg-blue-100 hover:bg-blue-200">24h</button>
-                        <button onclick="switchHistoryView('7j')" class="px-3 py-1 text-sm rounded bg-gray-100 hover:bg-gray-200">7j</button>
+                        <button onclick="switchHistoryView('1h')" class="px-3 py-1 text-sm rounded bg-gray-100 hover:bg-gray-200">24h</button>
+                        <button onclick="switchHistoryView('24h')" class="px-3 py-1 text-sm rounded bg-blue-100 hover:bg-blue-200">7d</button>
+                        <button onclick="switchHistoryView('7j')" class="px-3 py-1 text-sm rounded bg-gray-100 hover:bg-gray-200">30d</button>
                     </div>
                 </div>
                 <div class="chart-container" style="height: 300px;">
@@ -332,26 +332,34 @@ function safeNumber(v, def = 0) {
 /* =========================
    HISTORIQUE SQL
 ========================= */
-async function switchHistoryView(range) {
-    state.currentHistoryView = range;
+async function switchHistoryView(period) {
+
+    state.currentHistoryView = period;
 
     try {
-        const response = await fetch(`get_history.php?range=${range}&user_id=<?= $user_id ?>`);
+
+        const response = await fetch(`get_history.php?period=${period}`);
         const result = await response.json();
 
-        if (!result.success) return;
+        if (!result.success || !result.history) {
+            console.log("Pas de données historique");
+            return;
+        }
 
-        const rows = result.history;
+        const rows = result.history.reverse();
 
         const labels = rows.map(r => {
-            const d = new Date(r.created_at);
-            return range === '7j'
-                ? d.toLocaleDateString()
-                : d.toLocaleTimeString();
+            const d = new Date(r.timestamp);
+
+            if (period === '7d' || period === '30d') {
+                return d.toLocaleDateString();
+            }
+
+            return d.toLocaleTimeString();
         });
 
-        const temps = rows.map(r => safeNumber(r.temperature));
-        const signals = rows.map(r => safeNumber(r.signal_strength));
+        const temps = rows.map(r => parseFloat(r.temperature || 0));
+        const signals = rows.map(r => parseFloat(r.signal_strength || 0));
 
         const c = state.charts.history;
 
@@ -361,21 +369,22 @@ async function switchHistoryView(range) {
 
         c.update();
 
-        if (temps.length) {
+        if (temps.length > 0) {
+
             const avg = temps.reduce((a,b)=>a+b,0)/temps.length;
 
             document.getElementById('historyMin').textContent =
-                Math.min(...temps).toFixed(1)+'°C';
+                Math.min(...temps).toFixed(1) + '°C';
 
             document.getElementById('historyMax').textContent =
-                Math.max(...temps).toFixed(1)+'°C';
+                Math.max(...temps).toFixed(1) + '°C';
 
             document.getElementById('historyAvg').textContent =
-                avg.toFixed(1)+'°C';
+                avg.toFixed(1) + '°C';
         }
 
     } catch(e) {
-        console.log(e);
+        console.error("Erreur historique:", e);
     }
 }
 
@@ -384,6 +393,7 @@ async function switchHistoryView(range) {
 ========================= */
 function initCharts() {
 
+    // Temp chart
     state.charts.temp = new Chart(document.getElementById('tempTrendChart'), {
         type: 'line',
         data: {
@@ -402,11 +412,19 @@ function initCharts() {
         options: {
             responsive: true,
             maintainAspectRatio: false,
-            plugins: { legend: { display: false } },
-            scales: { x:{display:false} }
+            plugins: {
+                legend: { display: false }
+            },
+            scales: {
+                x: { display: false },
+                y: {
+                    grid: { color: 'rgba(0,0,0,0.05)' }
+                }
+            }
         }
     });
 
+    // Signal chart
     state.charts.signal = new Chart(document.getElementById('signalTrendChart'), {
         type: 'line',
         data: {
@@ -425,32 +443,48 @@ function initCharts() {
         options: {
             responsive: true,
             maintainAspectRatio: false,
-            plugins: { legend: { display: false } },
-            scales: { x:{display:false}, y:{min:0,max:100} }
+            plugins: {
+                legend: { display: false }
+            },
+            scales: {
+                x: { display: false },
+                y: {
+                    min: 0,
+                    max: 100,
+                    grid: { color: 'rgba(0,0,0,0.05)' }
+                }
+            }
         }
     });
 
+    // History chart
     state.charts.history = new Chart(document.getElementById('historyChart'), {
         type: 'line',
         data: {
             labels: [],
             datasets: [
                 {
-                    label: 'Température',
+                    label: 'Température °C',
                     data: [],
                     borderColor: '#f59e0b',
                     backgroundColor: 'rgba(245,158,11,0.12)',
                     fill: true,
                     tension: 0.45,
+                    borderWidth: 3,
+                    pointRadius: 2,
+                    pointHoverRadius: 6,
                     yAxisID: 'y'
                 },
                 {
-                    label: 'Signal',
+                    label: 'Signal %',
                     data: [],
                     borderColor: '#3b82f6',
                     backgroundColor: 'rgba(59,130,246,0.10)',
                     fill: true,
                     tension: 0.45,
+                    borderWidth: 3,
+                    pointRadius: 2,
+                    pointHoverRadius: 6,
                     yAxisID: 'y1'
                 }
             ]
@@ -458,28 +492,44 @@ function initCharts() {
         options: {
             responsive: true,
             maintainAspectRatio: false,
-            interaction: { mode:'index', intersect:false },
+            interaction: {
+                mode: 'index',
+                intersect: false
+            },
             plugins: {
                 zoom: {
-                    pan: { enabled:true, mode:'x' },
+                    pan: {
+                        enabled: true,
+                        mode: 'x'
+                    },
                     zoom: {
-                        wheel:{ enabled:true },
-                        pinch:{ enabled:true },
-                        mode:'x'
+                        wheel: {
+                            enabled: true
+                        },
+                        pinch: {
+                            enabled: true
+                        },
+                        mode: 'x'
                     }
                 }
             },
             scales: {
-                y: { type:'linear', position:'left' },
+                y: {
+                    type: 'linear',
+                    position: 'left'
+                },
                 y1: {
-                    type:'linear',
-                    position:'right',
-                    grid:{ drawOnChartArea:false }
+                    type: 'linear',
+                    position: 'right',
+                    grid: {
+                        drawOnChartArea: false
+                    }
                 }
             }
         }
     });
 
+    // Alert chart
     state.charts.alert = new Chart(document.getElementById('alertChart'), {
         type: 'bar',
         data: {
@@ -488,15 +538,49 @@ function initCharts() {
                 label: 'Alertes',
                 data: [],
                 borderRadius: 8,
+                borderSkipped: false,
                 backgroundColor: []
             }]
         },
         options: {
             responsive: true,
-            maintainAspectRatio: false
+            maintainAspectRatio: false,
+            scales: {
+                y: {
+                    beginAtZero: true
+                }
+            }
         }
     });
 }
+
+function init() {
+
+    initCharts();
+
+    // Charger historique SQL au démarrage
+    switchHistoryView('24h');
+
+    // Charger alertes SQL
+    updateAlertChart();
+
+    // Charger live
+    loadAnalytics();
+
+    // Refresh live
+    setInterval(loadAnalytics, 5000);
+
+    // Refresh alertes
+    setInterval(updateAlertChart, 10000);
+
+    // Status appareil
+    setInterval(checkOffline, 5000);
+
+    // Uptime
+    setInterval(updateUptime, 1000);
+}
+
+document.addEventListener('DOMContentLoaded', init);
 
 /* =========================
    LIVE CHARTS
@@ -727,21 +811,7 @@ async function generatePDFReport() {
     document.getElementById('pdfLoading').style.display='none';
 }
 
-/* =========================
-   INIT
-========================= */
-function init() {
-    initCharts();
 
-    loadAnalytics();
-    switchHistoryView('24h');
-
-    setInterval(loadAnalytics, 5000);
-    setInterval(checkOffline, 5000);
-    setInterval(updateUptime, 1000);
-}
-
-document.addEventListener('DOMContentLoaded', init);
 </script>
 </body>
 </html>
