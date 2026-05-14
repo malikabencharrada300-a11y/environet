@@ -48,15 +48,6 @@ $username = $_SESSION['user_name'] ?? 'User';
             z-index: 9999;
         }
         
-        .fade-in {
-            animation: fadeIn .5s ease;
-        }
-        
-        @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(10px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
-        
         .smooth-hover {
             transition: all .3s ease;
         }
@@ -64,14 +55,6 @@ $username = $_SESSION['user_name'] ?? 'User';
         .smooth-hover:hover {
             transform: translateY(-3px);
             box-shadow: 0 8px 18px rgba(0,0,0,0.08);
-        }
-        
-        button {
-            transition: all .25s ease;
-        }
-        
-        button:hover {
-            transform: translateY(-1px);
         }
         
         .insight-item {
@@ -83,14 +66,22 @@ $username = $_SESSION['user_name'] ?? 'User';
             border-bottom: none;
         }
         
-        ::-webkit-scrollbar {
-            width: 8px;
+        .btn-active {
+            background-color: #3b82f6 !important;
+            color: white !important;
         }
         
-        ::-webkit-scrollbar-thumb {
-            background: #CBD5E1;
-            border-radius: 8px;
+        .alert-stat {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
         }
+        
+        .alert-stat.critical { background: #FEE2E2; color: #DC2626; }
+        .alert-stat.warning { background: #FEF3C7; color: #D97706; }
+        .alert-stat.info { background: #E0F2FE; color: #0284C7; }
     </style>
 </head>
 
@@ -140,7 +131,6 @@ $username = $_SESSION['user_name'] ?? 'User';
 
         <!-- Main Grid -->
         <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
-            <!-- Device Status Card -->
             <div class="bg-white rounded-xl shadow-lg p-6 smooth-hover">
                 <div class="flex justify-between mb-4">
                     <h2 class="font-bold text-lg text-gray-800">Device Status</h2>
@@ -162,7 +152,6 @@ $username = $_SESSION['user_name'] ?? 'User';
                 </div>
             </div>
 
-            <!-- Temperature Card -->
             <div class="bg-white rounded-xl shadow-lg p-6 smooth-hover">
                 <div class="flex justify-between mb-4">
                     <h2 class="font-bold text-lg text-gray-800">Temperature Analysis</h2>
@@ -177,7 +166,6 @@ $username = $_SESSION['user_name'] ?? 'User';
                 </div>
             </div>
 
-            <!-- Network Card -->
             <div class="bg-white rounded-xl shadow-lg p-6 smooth-hover">
                 <div class="flex justify-between mb-4">
                     <h2 class="font-bold text-lg text-gray-800">Network Analysis</h2>
@@ -216,14 +204,18 @@ $username = $_SESSION['user_name'] ?? 'User';
                     <div id="recommendationsContainer" class="text-sm"></div>
                 </div>
             </div>
-            <div class="mt-4 p-3 bg-white rounded-lg">
-                <div class="flex justify-between items-center">
-                    <span class="text-sm font-semibold">🤖 AI Health Score:</span>
-                    <span id="aiScore" class="text-xl font-bold text-purple-600">--</span>
+            <div class="mt-4 grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div class="p-3 bg-white rounded-lg">
+                    <div class="flex justify-between items-center">
+                        <span class="text-sm font-semibold">🤖 AI Health Score:</span>
+                        <span id="aiScore" class="text-2xl font-bold text-purple-600">--</span>
+                    </div>
                 </div>
-                <div class="flex justify-between items-center mt-2">
-                    <span class="text-sm font-semibold">⚠️ Anomaly Detection:</span>
-                    <span id="anomalyText" class="text-sm">Normal</span>
+                <div class="p-3 bg-white rounded-lg">
+                    <div class="flex justify-between items-center">
+                        <span class="text-sm font-semibold">⚠️ Anomaly Detection:</span>
+                        <span id="anomalyText" class="text-sm font-medium px-3 py-1 rounded-full">Normal</span>
+                    </div>
                 </div>
             </div>
         </div>
@@ -261,19 +253,24 @@ $username = $_SESSION['user_name'] ?? 'User';
                 <div class="flex justify-between mb-4 flex-wrap gap-2">
                     <h3 class="font-bold text-lg">⚠️ Alert Chart</h3>
                     <select id="alertTypeFilter" onchange="filterAlerts()" class="px-3 py-1 text-sm rounded border border-gray-300">
-                        <option value="all">All Alerts</option>
-                        <option value="temperature">Temperature</option>
-                        <option value="signal">Signal</option>
-                        <option value="connection">Connection</option>
+                        <option value="all">📊 All Alerts</option>
+                        <option value="temperature">🌡️ Temperature</option>
+                        <option value="signal">📶 Signal</option>
+                        <option value="connection">🔌 Connection</option>
                     </select>
                 </div>
                 <div class="chart-container" style="height: 300px;">
                     <canvas id="alertChart"></canvas>
                 </div>
-                <div class="mt-4">
+                <div class="mt-4 flex justify-between items-center">
                     <p class="text-sm text-gray-600">
-                        Today's alerts: <span id="todayAlerts" class="font-bold text-red-600">0</span>
+                        📅 Today's alerts: <span id="todayAlerts" class="font-bold text-red-600 text-lg">0</span>
                     </p>
+                    <div class="flex gap-2">
+                        <span class="alert-stat critical">🔴 Critical</span>
+                        <span class="alert-stat warning">🟡 Warning</span>
+                        <span class="alert-stat info">🔵 Info</span>
+                    </div>
                 </div>
             </div>
         </div>
@@ -295,7 +292,11 @@ $username = $_SESSION['user_name'] ?? 'User';
         currentPeriod: '24h',
         tempHistory: [],
         signalHistory: [],
-        alerts: []
+        alertData: {
+            temperature: [],
+            signal: [],
+            connection: []
+        }
     };
 
     function safeNum(v) {
@@ -340,7 +341,10 @@ $username = $_SESSION['user_name'] ?? 'User';
                     responsive: true,
                     maintainAspectRatio: false,
                     interaction: { mode: 'index', intersect: false },
-                    scales: { y: { position: 'left', title: { display: true, text: 'Temperature (°C)' } }, y1: { position: 'right', title: { display: true, text: 'Signal (%)' }, grid: { drawOnChartArea: false }, min: 0, max: 100 } }
+                    scales: { 
+                        y: { position: 'left', title: { display: true, text: 'Temperature (°C)' } }, 
+                        y1: { position: 'right', title: { display: true, text: 'Signal (%)' }, grid: { drawOnChartArea: false }, min: 0, max: 100 } 
+                    }
                 }
             });
         }
@@ -350,8 +354,20 @@ $username = $_SESSION['user_name'] ?? 'User';
         if (alertCtx) {
             state.charts.alert = new Chart(alertCtx.getContext('2d'), {
                 type: 'bar',
-                data: { labels: [], datasets: [{ label: 'Alerts', data: [], backgroundColor: [] }] },
-                options: { responsive: true, maintainAspectRatio: false }
+                data: { 
+                    labels: [], 
+                    datasets: [
+                        { label: 'Temperature Alerts', data: [], backgroundColor: '#dc2626', borderRadius: 8 },
+                        { label: 'Signal Alerts', data: [], backgroundColor: '#f59e0b', borderRadius: 8 },
+                        { label: 'Connection Alerts', data: [], backgroundColor: '#3b82f6', borderRadius: 8 }
+                    ] 
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { position: 'top' } },
+                    scales: { y: { beginAtZero: true, title: { display: true, text: 'Number of Alerts' } } }
+                }
             });
         }
 
@@ -360,34 +376,93 @@ $username = $_SESSION['user_name'] ?? 'User';
         if (predictCtx) {
             state.charts.predict = new Chart(predictCtx.getContext('2d'), {
                 type: 'line',
-                data: { labels: [], datasets: [{ label: 'Forecast', data: [], borderColor: '#8b5cf6', backgroundColor: 'rgba(139,92,246,0.1)', fill: true, tension: 0.4 }] },
+                data: { labels: [], datasets: [{ label: 'Temperature Forecast', data: [], borderColor: '#8b5cf6', backgroundColor: 'rgba(139,92,246,0.1)', fill: true, tension: 0.4 }] },
                 options: { responsive: true, maintainAspectRatio: false }
             });
         }
     }
 
-    function pushToChart(chart, value, maxPoints = 20) {
-        if (!chart) return;
-        const now = new Date().toLocaleTimeString();
-        chart.data.labels.push(now);
-        chart.data.datasets[0].data.push(value);
-        while (chart.data.labels.length > maxPoints) {
-            chart.data.labels.shift();
-            chart.data.datasets[0].data.shift();
+    async function updateAlertChart() {
+        try {
+            const filter = document.getElementById('alertTypeFilter')?.value || 'all';
+            const response = await fetch(`get_alert_chart.php?filter=${filter}&user_id=<?= $user_id ?>`);
+            const data = await response.json();
+
+            if (data.success && data.alerts) {
+                const labels = data.alerts.map(x => x.day);
+                
+                if (filter === 'all') {
+                    // Afficher les alertes par type
+                    const tempData = data.alerts.map(x => x.temperature || 0);
+                    const signalData = data.alerts.map(x => x.signal || 0);
+                    const connData = data.alerts.map(x => x.connection || 0);
+                    
+                    if (state.charts.alert) {
+                        state.charts.alert.data.labels = labels;
+                        state.charts.alert.data.datasets[0].data = tempData;
+                        state.charts.alert.data.datasets[1].data = signalData;
+                        state.charts.alert.data.datasets[2].data = connData;
+                        state.charts.alert.update();
+                    }
+                    
+                    const todayTotal = (tempData[tempData.length-1] || 0) + (signalData[signalData.length-1] || 0) + (connData[connData.length-1] || 0);
+                    document.getElementById('todayAlerts').textContent = todayTotal;
+                    
+                    const totalAlerts = tempData.reduce((a,b) => a+b, 0) + signalData.reduce((a,b) => a+b, 0) + connData.reduce((a,b) => a+b, 0);
+                    calculateAIScore(totalAlerts);
+                    
+                } else {
+                    // Afficher juste le type sélectionné
+                    const alertData = data.alerts.map(x => x.total || 0);
+                    if (state.charts.alert) {
+                        state.charts.alert.data.labels = labels;
+                        state.charts.alert.data.datasets[0].data = alertData;
+                        state.charts.alert.data.datasets[1].data = [];
+                        state.charts.alert.data.datasets[2].data = [];
+                        state.charts.alert.update();
+                    }
+                    const todayTotal = alertData[alertData.length-1] || 0;
+                    document.getElementById('todayAlerts').textContent = todayTotal;
+                    
+                    const totalAlerts = alertData.reduce((a,b) => a+b, 0);
+                    calculateAIScore(totalAlerts);
+                }
+            }
+        } catch (e) {
+            console.error('Error loading alerts:', e);
         }
-        chart.update();
+    }
+
+    function calculateAIScore(totalAlerts) {
+        const score = Math.max(0, Math.min(100, 100 - totalAlerts * 2));
+        const aiScoreSpan = document.getElementById('aiScore');
+        if (aiScoreSpan) {
+            aiScoreSpan.textContent = score + '%';
+            if (score >= 80) {
+                aiScoreSpan.className = 'text-2xl font-bold text-green-600';
+            } else if (score >= 50) {
+                aiScoreSpan.className = 'text-2xl font-bold text-orange-500';
+            } else {
+                aiScoreSpan.className = 'text-2xl font-bold text-red-600';
+            }
+        }
+    }
+
+    function filterAlerts() {
+        updateAlertChart();
     }
 
     async function switchHistoryView(period) {
         state.currentPeriod = period;
         
-        // Update active button style
         document.querySelectorAll('.history-view-btn').forEach(btn => {
             btn.classList.remove('bg-blue-100');
             btn.classList.add('bg-gray-100');
         });
-        event.target.classList.remove('bg-gray-100');
-        event.target.classList.add('bg-blue-100');
+        if (event && event.target) {
+            event.target.classList.remove('bg-gray-100');
+            event.target.classList.add('bg-blue-100');
+        }
 
         try {
             const response = await fetch(`get_history.php?period=${period}&user_id=<?= $user_id ?>`);
@@ -410,125 +485,15 @@ $username = $_SESSION['user_name'] ?? 'User';
                 }
 
                 if (tempData.length > 0) {
-                    const minTemp = Math.min(...tempData);
-                    const maxTemp = Math.max(...tempData);
-                    const avgTemp = tempData.reduce((a, b) => a + b, 0) / tempData.length;
-                    document.getElementById('historyMin').textContent = `${minTemp.toFixed(1)}°C / ${Math.min(...signalData)}%`;
-                    document.getElementById('historyMax').textContent = `${maxTemp.toFixed(1)}°C / ${Math.max(...signalData)}%`;
-                    document.getElementById('historyAvg').textContent = `${avgTemp.toFixed(1)}°C / ${(signalData.reduce((a, b) => a + b, 0) / signalData.length).toFixed(0)}%`;
-                    
+                    document.getElementById('historyMin').textContent = `${Math.min(...tempData).toFixed(1)}°C / ${Math.min(...signalData)}%`;
+                    document.getElementById('historyMax').textContent = `${Math.max(...tempData).toFixed(1)}°C / ${Math.max(...signalData)}%`;
+                    document.getElementById('historyAvg').textContent = `${(tempData.reduce((a,b) => a+b, 0) / tempData.length).toFixed(1)}°C / ${(signalData.reduce((a,b) => a+b, 0) / signalData.length).toFixed(0)}%`;
                     generatePrediction(tempData);
                 }
             }
         } catch (e) {
             console.error('Error loading history:', e);
         }
-    }
-
-   // Fonction pour mettre à jour le graphique d'alertes
-async function updateAlertChart() {
-    try {
-        const filter = document.getElementById('alertTypeFilter')?.value || 'all';
-        const response = await fetch(`get_alert_chart.php?filter=${filter}&user_id=<?= $user_id ?>`);
-        const data = await response.json();
-
-        if (data.success && data.alerts) {
-            const labels = data.alerts.map(x => x.day);
-            const values = data.alerts.map(x => parseInt(x.total));
-            
-            // Déterminer les couleurs en fonction de la sévérité
-            const colors = data.alerts.map(alert => {
-                if (alert.critical > 0) return '#dc2626';      // Rouge pour critique
-                if (alert.warning > 0) return '#f59e0b';       // Orange pour warning
-                return '#10b981';                               // Vert pour normal
-            });
-
-            if (state.charts.alert) {
-                state.charts.alert.data.labels = labels;
-                state.charts.alert.data.datasets[0].data = values;
-                state.charts.alert.data.datasets[0].backgroundColor = colors;
-                state.charts.alert.data.datasets[0].borderColor = colors;
-                state.charts.alert.update();
-            }
-
-            // Calculer le total des alertes aujourd'hui
-            const todayTotal = data.alerts.length > 0 ? data.alerts[data.alerts.length - 1]?.total || 0 : 0;
-            const todayAlertsSpan = document.getElementById('todayAlerts');
-            if (todayAlertsSpan) {
-                todayAlertsSpan.textContent = todayTotal;
-            }
-            
-            // Calculer le score IA basé sur les alertes
-            const totalAlerts = data.alerts.reduce((sum, alert) => sum + alert.total, 0);
-            calculateAIScore(totalAlerts);
-        } else {
-            // Données de démonstration si aucune alerte n'existe
-            const demoLabels = [];
-            const demoValues = [];
-            for (let i = 6; i >= 0; i--) {
-                const date = new Date();
-                date.setDate(date.getDate() - i);
-                demoLabels.push(date.getDate() + '/' + (date.getMonth() + 1));
-                demoValues.push(Math.floor(Math.random() * 5));
-            }
-            
-            if (state.charts.alert) {
-                state.charts.alert.data.labels = demoLabels;
-                state.charts.alert.data.datasets[0].data = demoValues;
-                state.charts.alert.data.datasets[0].backgroundColor = demoValues.map(v => v > 0 ? '#f59e0b' : '#10b981');
-                state.charts.alert.update();
-            }
-        }
-    } catch (e) {
-        console.error('Error loading alerts:', e);
-        // Données de démonstration en cas d'erreur
-        const demoLabels = [];
-        const demoValues = [];
-        for (let i = 6; i >= 0; i--) {
-            const date = new Date();
-            date.setDate(date.getDate() - i);
-            demoLabels.push(date.getDate() + '/' + (date.getMonth() + 1));
-            demoValues.push(0);
-        }
-        
-        if (state.charts.alert) {
-            state.charts.alert.data.labels = demoLabels;
-            state.charts.alert.data.datasets[0].data = demoValues;
-            state.charts.alert.update();
-        }
-    }
-}
-
-function calculateAIScore(totalAlerts) {
-    const score = Math.max(0, 100 - totalAlerts * 2);
-    const aiScoreSpan = document.getElementById('aiScore');
-    if (aiScoreSpan) {
-        aiScoreSpan.textContent = score + '%';
-        
-        // Changer la couleur selon le score
-        if (score >= 80) {
-            aiScoreSpan.className = 'text-xl font-bold text-green-600';
-        } else if (score >= 50) {
-            aiScoreSpan.className = 'text-xl font-bold text-orange-500';
-        } else {
-            aiScoreSpan.className = 'text-xl font-bold text-red-600';
-        }
-    }
-}
-
-function filterAlerts() {
-    updateAlertChart();
-}
-
-    function calculateAIScore(alerts) {
-        if (!alerts || alerts.length === 0) return;
-        const total = alerts.reduce((a, b) => a + b, 0);
-        const score = Math.max(0, 100 - total * 2);
-        document.getElementById('aiScore').textContent = score + '%';
-        
-        let status = 'Healthy';
-        if (score < 70) status = '⚠️ Warning';
-        if (score < 50) status = '🔴 Critical';
     }
 
     function generatePrediction(history) {
@@ -571,13 +536,6 @@ function filterAlerts() {
             insights.push('<div class="insight-item text-green-600">🟢 Optimal signal: ' + signal + '%</div>');
         }
         
-        if (state.tempHistory.length > 2) {
-            const trend = state.tempHistory[state.tempHistory.length - 1] - state.tempHistory[state.tempHistory.length - 2];
-            if (Math.abs(trend) > 0.3) {
-                insights.push('<div class="insight-item text-blue-600">📈 Temperature ' + (trend > 0 ? 'rising' : 'falling') + ' by ' + Math.abs(trend).toFixed(1) + '°C</div>');
-            }
-        }
-        
         container.innerHTML = insights.join('');
     }
 
@@ -591,16 +549,16 @@ function filterAlerts() {
             const recentAvg = state.tempHistory.slice(-5).reduce((a, b) => a + b, 0) / 5;
             const trend = state.tempHistory[state.tempHistory.length - 1] - state.tempHistory[state.tempHistory.length - 5];
             const predictedTemp = recentAvg + (trend * 0.5);
-            predictions.push('<div class="insight-item">🌡️ Expected temperature in 1h: ' + predictedTemp.toFixed(1) + '°C</div>');
+            predictions.push('<div class="insight-item">🌡️ Expected in 1h: ' + predictedTemp.toFixed(1) + '°C</div>');
         }
         
         if (state.signalHistory.length >= 5) {
             const avgSignal = state.signalHistory.slice(-5).reduce((a, b) => a + b, 0) / 5;
-            predictions.push('<div class="insight-item">📶 Average signal forecast: ' + avgSignal.toFixed(0) + '%</div>');
+            predictions.push('<div class="insight-item">📶 Signal forecast: ' + avgSignal.toFixed(0) + '%</div>');
         }
         
         const stabilityScore = Math.min(100, Math.max(0, 100 - (Date.now() - state.lastUpdate) / 1000));
-        predictions.push('<div class="insight-item">🔧 System stability: ' + stabilityScore.toFixed(0) + '%</div>');
+        predictions.push('<div class="insight-item">🔧 Stability: ' + stabilityScore.toFixed(0) + '%</div>');
         
         container.innerHTML = predictions.join('');
     }
@@ -623,10 +581,6 @@ function filterAlerts() {
             recommendations.push('<div class="insight-item text-red-600">📡 Check antenna connection</div>');
         } else if (signal < CONFIG.SIGNAL_WARNING) {
             recommendations.push('<div class="insight-item text-orange-500">🔄 Optimize antenna position</div>');
-        }
-        
-        if (recommendations.length === 0) {
-            recommendations.push('<div class="insight-item text-green-600">✅ No action required</div>');
         }
         
         container.innerHTML = recommendations.join('');
@@ -652,7 +606,17 @@ function filterAlerts() {
         if (tempTrend) tempTrend.textContent = status;
         if (tempIcon) tempIcon.textContent = icon;
         
-        pushToChart(state.charts.temp, temp);
+        if (state.charts.temp) {
+            const now = new Date().toLocaleTimeString();
+            state.charts.temp.data.labels.push(now);
+            state.charts.temp.data.datasets[0].data.push(temp);
+            if (state.charts.temp.data.labels.length > 20) {
+                state.charts.temp.data.labels.shift();
+                state.charts.temp.data.datasets[0].data.shift();
+            }
+            state.charts.temp.update();
+        }
+        
         state.tempHistory.push(temp);
         if (state.tempHistory.length > 50) state.tempHistory.shift();
     }
@@ -677,7 +641,17 @@ function filterAlerts() {
         if (signalTrend) signalTrend.textContent = status;
         if (signalIcon) signalIcon.textContent = icon;
         
-        pushToChart(state.charts.signal, signal);
+        if (state.charts.signal) {
+            const now = new Date().toLocaleTimeString();
+            state.charts.signal.data.labels.push(now);
+            state.charts.signal.data.datasets[0].data.push(signal);
+            if (state.charts.signal.data.labels.length > 20) {
+                state.charts.signal.data.labels.shift();
+                state.charts.signal.data.datasets[0].data.shift();
+            }
+            state.charts.signal.update();
+        }
+        
         state.signalHistory.push(signal);
         if (state.signalHistory.length > 50) state.signalHistory.shift();
     }
@@ -731,9 +705,16 @@ function filterAlerts() {
             
             const anomalyText = document.getElementById('anomalyText');
             if (anomalyText) {
-                if (temperature > 30 || signal < 20) anomalyText.textContent = 'Critical anomaly detected';
-                else if (temperature > 26 || signal < 40) anomalyText.textContent = 'Potential anomaly';
-                else anomalyText.textContent = 'Normal operation';
+                if (temperature > 30 || signal < 20) {
+                    anomalyText.textContent = '🔴 Critical anomaly detected';
+                    anomalyText.className = 'text-sm font-medium px-3 py-1 rounded-full bg-red-100 text-red-700';
+                } else if (temperature > 26 || signal < 40) {
+                    anomalyText.textContent = '🟡 Potential anomaly detected';
+                    anomalyText.className = 'text-sm font-medium px-3 py-1 rounded-full bg-yellow-100 text-yellow-700';
+                } else {
+                    anomalyText.textContent = '🟢 Normal operation';
+                    anomalyText.className = 'text-sm font-medium px-3 py-1 rounded-full bg-green-100 text-green-700';
+                }
             }
             
             await updateAlertChart();
@@ -741,10 +722,6 @@ function filterAlerts() {
         } catch (error) {
             console.error('Error loading analytics:', error);
         }
-    }
-
-    function filterAlerts() {
-        updateAlertChart();
     }
 
     async function generatePDFReport() {
@@ -774,16 +751,18 @@ function filterAlerts() {
             const currentTemp = document.getElementById('currentTemp')?.textContent || '--';
             const currentSignal = document.getElementById('currentSignal')?.textContent || '--';
             const deviceStatus = document.getElementById('deviceStatus')?.textContent || '--';
+            const aiScore = document.getElementById('aiScore')?.textContent || '--';
             
             doc.setFontSize(11);
             doc.text(`Device Status: ${deviceStatus}`, 25, 68);
             doc.text(`Temperature: ${currentTemp}`, 25, 76);
             doc.text(`Signal: ${currentSignal}`, 25, 84);
+            doc.text(`AI Health Score: ${aiScore}`, 25, 92);
             
             const historyChart = document.getElementById('historyChart');
             if (historyChart) {
                 const imgData = historyChart.toDataURL('image/png');
-                doc.addImage(imgData, 'PNG', 20, 95, 170, 70);
+                doc.addImage(imgData, 'PNG', 20, 105, 170, 70);
             }
             
             doc.save(`smart-analytics-${new Date().toISOString().split('T')[0]}.pdf`);
