@@ -330,51 +330,212 @@ function safeNumber(v, def = 0) {
 function initCharts() {
 
     state.charts.temp = new Chart(document.getElementById('tempTrendChart'), {
-        type: 'line',
-        data: { labels: [], datasets: [{ data: [], borderColor: '#f59e0b', backgroundColor: '#fbbf2422', fill: true, tension: .4 }] },
-        options: { responsive: true, maintainAspectRatio: false, plugins:{legend:{display:false}} }
-    });
+    type: 'line',
+    data: {
+        labels: [],
+        datasets: [{
+            data: [],
+            borderColor: '#f59e0b',
+            backgroundColor: 'rgba(245,158,11,0.12)',
+            fill: true,
+            tension: 0.45,
+            borderWidth: 3,
+            pointRadius: 2,
+            pointHoverRadius: 6
+        }]
+    },
+    options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: { legend: { display: false } },
+        scales: {
+            x: { display: false },
+            y: {
+                grid: { color: 'rgba(0,0,0,0.05)' }
+            }
+        },
+        animation: {
+            duration: 1000
+        }
+    }
+});
 
     state.charts.signal = new Chart(document.getElementById('signalTrendChart'), {
-        type: 'line',
-        data: { labels: [], datasets: [{ data: [], borderColor: '#3b82f6', backgroundColor: '#3b82f622', fill: true, tension: .4 }] },
-        options: { responsive: true, maintainAspectRatio: false, plugins:{legend:{display:false}} }
-    });
+    type: 'line',
+    data: {
+        labels: [],
+        datasets: [{
+            data: [],
+            borderColor: '#3b82f6',
+            backgroundColor: 'rgba(59,130,246,0.12)',
+            fill: true,
+            tension: 0.45,
+            borderWidth: 3,
+            pointRadius: 2,
+            pointHoverRadius: 6
+        }]
+    },
+    options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: { legend: { display: false } },
+        scales: {
+            x: { display: false },
+            y: {
+                min: 0,
+                max: 100,
+                grid: { color: 'rgba(0,0,0,0.05)' }
+            }
+        },
+        animation: {
+            duration: 1000
+        }
+    }
+});
 
     state.charts.history = new Chart(document.getElementById('historyChart'), {
-        type: 'line',
-        data: {
-            labels: [],
-            datasets: [
-                { label: 'Température', data: [], borderColor: '#f59e0b', yAxisID:'y' },
-                { label: 'Signal', data: [], borderColor: '#3b82f6', yAxisID:'y1' }
-            ]
-        },
-        options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            scales: {
-                y:{ type:'linear', position:'left' },
-                y1:{ type:'linear', position:'right', grid:{ drawOnChartArea:false } }
+    type: 'line',
+    data: {
+        labels: [],
+        datasets: [
+            {
+                label: 'Température °C',
+                data: [],
+                borderColor: '#f59e0b',
+                backgroundColor: 'rgba(245,158,11,0.12)',
+                fill: true,
+                tension: 0.45,
+                borderWidth: 3,
+                pointRadius: 2,
+                pointHoverRadius: 6,
+                pointBackgroundColor: '#f59e0b',
+                yAxisID: 'y'
+            },
+            {
+                label: 'Signal %',
+                data: [],
+                borderColor: '#3b82f6',
+                backgroundColor: 'rgba(59,130,246,0.10)',
+                fill: true,
+                tension: 0.45,
+                borderWidth: 3,
+                pointRadius: 2,
+                pointHoverRadius: 6,
+                pointBackgroundColor: '#3b82f6',
+                yAxisID: 'y1'
             }
+        ]
+    },
+    options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        interaction: {
+            mode: 'index',
+            intersect: false
+        },
+        plugins: {
+            legend: {
+                position: 'top',
+                labels: {
+                    usePointStyle: true,
+                    padding: 20,
+                    font: {
+                        size: 12,
+                        weight: 'bold'
+                    }
+                }
+            },
+            tooltip: {
+                backgroundColor: '#111827',
+                titleColor: '#fff',
+                bodyColor: '#fff',
+                padding: 12,
+                borderColor: '#3b82f6',
+                borderWidth: 1
+            }
+        },
+        scales: {
+            x: {
+                grid: {
+                    color: 'rgba(0,0,0,0.05)'
+                },
+                ticks: {
+                    maxTicksLimit: 8
+                }
+            },
+            y: {
+                type: 'linear',
+                position: 'left',
+                title: {
+                    display: true,
+                    text: 'Température'
+                },
+                grid: {
+                    color: 'rgba(245,158,11,0.08)'
+                }
+            },
+            y1: {
+                type: 'linear',
+                position: 'right',
+                title: {
+                    display: true,
+                    text: 'Signal'
+                },
+                grid: {
+                    drawOnChartArea: false
+                }
+            }
+        },
+        animation: {
+            duration: 1200,
+            easing: 'easeOutQuart'
         }
-    });
+    }
+});
 
     state.charts.alert = new Chart(document.getElementById('alertChart'), {
-        type: 'bar',
-        data: {
-            labels: ['Initialisation'],
-            datasets: [{
-                label: 'Alertes',
-                data: [0],
-                backgroundColor: ['#D1D5DB']
-            }]
+    type: 'bar',
+    data: {
+        labels: [],
+        datasets: [{
+            label: 'Alertes',
+            data: [],
+            borderRadius: 8,
+            borderSkipped: false,
+            backgroundColor: []
+        }]
+    },
+    options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+            legend: {
+                labels: {
+                    font: { weight: 'bold' }
+                }
+            },
+            tooltip: {
+                backgroundColor: '#111827',
+                titleColor: '#fff',
+                bodyColor: '#fff'
+            }
         },
-        options: {
-            responsive: true,
-            maintainAspectRatio: false
+        scales: {
+            x: {
+                grid: { display: false }
+            },
+            y: {
+                beginAtZero: true,
+                ticks: { stepSize: 1 },
+                grid: { color: 'rgba(239,68,68,0.08)' }
+            }
+        },
+        animation: {
+            duration: 1200,
+            easing: 'easeOutQuart'
         }
-    });
+    }
+});
 }
 
 function pushChart(chart, value, max = 20) {
@@ -391,6 +552,7 @@ function pushChart(chart, value, max = 20) {
 }
 
 function updateHistory(temp, signal) {
+
     const c = state.charts.history;
     const now = new Date().toLocaleTimeString();
 
@@ -398,20 +560,27 @@ function updateHistory(temp, signal) {
     c.data.datasets[0].data.push(temp);
     c.data.datasets[1].data.push(signal);
 
-    while (c.data.labels.length > 40) {
+    while (c.data.labels.length > 60) {
         c.data.labels.shift();
         c.data.datasets[0].data.shift();
         c.data.datasets[1].data.shift();
     }
 
-    c.update();
+    c.update('active');
 
     const temps = c.data.datasets[0].data;
-    if (temps.length) {
+
+    if (temps.length > 0) {
         const avg = temps.reduce((a,b)=>a+b,0)/temps.length;
-        document.getElementById('historyMin').textContent = Math.min(...temps).toFixed(1)+'°C';
-        document.getElementById('historyMax').textContent = Math.max(...temps).toFixed(1)+'°C';
-        document.getElementById('historyAvg').textContent = avg.toFixed(1)+'°C';
+
+        document.getElementById('historyMin').textContent =
+            Math.min(...temps).toFixed(1) + '°C';
+
+        document.getElementById('historyMax').textContent =
+            Math.max(...temps).toFixed(1) + '°C';
+
+        document.getElementById('historyAvg').textContent =
+            avg.toFixed(1) + '°C';
     }
 }
 
@@ -465,7 +634,12 @@ async function updateAlertChart() {
 
         state.charts.alert.data.labels = labels;
         state.charts.alert.data.datasets[0].data = labels.map(h => grouped[h]);
-        state.charts.alert.data.datasets[0].backgroundColor = labels.map(() => '#EF4444');
+        state.charts.alert.data.datasets[0].backgroundColor = labels.map(v => {
+    const count = grouped[v];
+    if (count >= 5) return '#DC2626';
+    if (count >= 3) return '#F59E0B';
+    return '#10B981';
+});
         state.charts.alert.update();
 
         const today = new Date().toDateString();
