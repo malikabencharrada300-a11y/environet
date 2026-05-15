@@ -14,7 +14,7 @@ $username = $_SESSION['user_name'] ?? 'User';
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Smart Analytics Pro - IoT Monitoring</title>
+    <title>Smart Analytics  - IoT Monitoring</title>
 
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-zoom@2.0.1/dist/chartjs-plugin-zoom.min.js"></script>
@@ -122,7 +122,7 @@ $username = $_SESSION['user_name'] ?? 'User';
                     </a>
                     <div class="flex items-center gap-3">
                         <span class="text-2xl float-animation">⚡</span>
-                        <h1 class="text-3xl font-bold gradient-text">Smart Analytics Pro</h1>
+                        <h1 class="text-3xl font-bold gradient-text">Smart Analytics </h1>
                     </div>
                 </div>
                 <div class="flex items-center gap-5">
@@ -704,15 +704,35 @@ $username = $_SESSION['user_name'] ?? 'User';
                 // Animated Gauge
                 doc.setFontSize(14); doc.setTextColor(0); doc.text("AI Gauge",15,y);
                 const cx=60, cy=y+35, rad=25;
-                for(let f=0;f<5;f++){
-                    if(f>0){ doc.setFillColor(255,255,255); doc.rect(30,y+5,60,60,'F'); }
-                    doc.setDrawColor(220); doc.setLineWidth(6); doc.arc(cx,cy,rad,rad,180,360);
-                    const angle=180+(sn*1.8*(f+1)/5); const radA=angle*Math.PI/180;
-                    doc.setDrawColor(...(sn>70?[34,197,94]:sn>40?[245,158,11]:[220,38,38])); doc.setLineWidth(3+f*0.5);
-                    doc.line(cx,cy,cx+rad*Math.cos(radA),cy+rad*Math.sin(radA));
-                    doc.setFontSize(16); doc.text(ai,cx-7,cy+8);
-                    await new Promise(r=>setTimeout(r,30));
-                }
+                for(let f = 0; f < 5; f++) {
+
+    if(f > 0){
+        doc.setFillColor(255,255,255);
+        doc.rect(30, y+5, 60, 60, 'F');
+    }
+
+    doc.setDrawColor(220);
+    doc.setLineWidth(2);
+    doc.circle(cx, cy, rad);
+
+    const angle = (sn * 1.8 * (f + 1) / 5) - 90;
+    const radA = angle * Math.PI / 180;
+
+    doc.setDrawColor(...(sn > 70 ? [34,197,94] : sn > 40 ? [245,158,11] : [220,38,38]));
+    doc.setLineWidth(2);
+
+    doc.line(
+        cx,
+        cy,
+        cx + rad * Math.cos(radA),
+        cy + rad * Math.sin(radA)
+    );
+
+    doc.setFontSize(16);
+    doc.text(ai, cx - 7, cy + 8);
+
+    await new Promise(r => setTimeout(r, 30));
+}
 
                 // Page 3 - Charts
                 doc.addPage(); addHeader("Analytics Charts"); y=28;
