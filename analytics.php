@@ -826,56 +826,113 @@ $username = $_SESSION['user_name'] ?? 'User';
     }
 
     async function generatePDFReport() {
-        const loadingDiv = document.getElementById('pdfLoading');
-        if (loadingDiv) loadingDiv.style.display = 'block';
-        
-        try {
-            const { jsPDF } = window.jspdf;
-            const doc = new jsPDF();
-            
-            doc.setFontSize(20);
-            doc.setTextColor(139, 92, 246);
-            doc.text('Smart Analytics Report', 20, 20);
-            
-            doc.setFontSize(12);
-            doc.setTextColor(100, 100, 100);
-            doc.text(`Generated: ${new Date().toLocaleString()}`, 20, 30);
-            doc.text(`User: <?= htmlspecialchars($username) ?>`, 20, 38);
-            
-            doc.setDrawColor(139, 92, 246);
-            doc.line(20, 45, 190, 45);
-            
-            doc.setFontSize(14);
-            doc.setTextColor(0, 0, 0);
-            doc.text('Current Status', 20, 58);
-            
-            const currentTemp = document.getElementById('currentTemp')?.textContent || '--';
-            const currentSignal = document.getElementById('currentSignal')?.textContent || '--';
-            const deviceStatus = document.getElementById('deviceStatus')?.textContent || '--';
-            const aiScore = document.getElementById('aiScore')?.textContent || '--';
-            
-            doc.setFontSize(11);
-            doc.text(`Device Status: ${deviceStatus}`, 25, 68);
-            doc.text(`Temperature: ${currentTemp}`, 25, 76);
-            doc.text(`Signal: ${currentSignal}`, 25, 84);
-            doc.text(`AI Health Score: ${aiScore}`, 25, 92);
-            
-            const historyChart = document.getElementById('historyChart');
-            if (historyChart) {
-                const imgData = historyChart.toDataURL('image/png');
-                doc.addImage(imgData, 'PNG', 20, 105, 170, 70);
-            }
-            
-            doc.save(`smart-analytics-${new Date().toISOString().split('T')[0]}.pdf`);
-            
-        } catch (error) {
-            console.error('PDF Error:', error);
-            alert('Error generating PDF report');
-        } finally {
-            if (loadingDiv) loadingDiv.style.display = 'none';
-        }
-    }
+    const loadingDiv = document.getElementById('pdfLoading');
+    if (loadingDiv) loadingDiv.style.display = 'block';
 
+    try {
+        const { jsPDF } = window.jspdf;
+        const doc = new jsPDF('p', 'mm', 'a4');
+
+        const pageW = 210;
+        let y = 20;
+
+        // Header
+        doc.setFillColor(59, 130, 246);
+        doc.rect(0, 0, pageW, 25, 'F');
+
+        doc.setTextColor(255,255,255);
+        doc.setFontSize(20);
+        doc.text('SMART IOT ANALYTICS REPORT', 20, 16);
+
+        y = 35;
+
+        doc.setTextColor(60,60,60);
+        doc.setFontSize(10);
+        doc.text(`Generated: ${new Date().toLocaleString()}`, 20, y);
+        doc.text(`User: <?= htmlspecialchars($username) ?>`, 20, y + 6);
+
+        y += 18;
+
+        // Section title
+        function section(title){
+            doc.setFillColor(243,244,246);
+            doc.rect(15, y - 5, 180, 8, 'F');
+            doc.setTextColor(30,30,30);
+            doc.setFontSize(13);
+            doc.text(title, 20, y);
+            y += 10;
+        }
+
+        section("1. Current System Status");
+
+        const currentTemp = document.getElementById('currentTemp')?.textContent || '--';
+        const currentSignal = document.getElementById('currentSignal')?.textContent || '--';
+        const aiScore = document.getElementById('aiScore')?.textContent || '--';
+        const anomaly = document.getElementById('anomalyText')?.textContent || '--';
+
+        doc.setFontSize(11);
+        doc.text(`Temperature: ${currentTemp}`, 25, y);
+        doc.text(`Signal: ${currentSignal}`, 25, y + 8);
+        doc.text(`AI Score: ${aiScore}`, 25, y + 16);
+        doc.text(`Anomaly: ${anomaly}`, 25, y + 24);
+
+        y += 38;
+
+        section("2. Historical Monitoring");
+
+        const historyCanvas = document.getElementById('historyChart');
+        if (historyCanvas) {
+            const img = historyCanvas.toDataURL('image/png');
+            doc.addImage(img, 'PNG', 20, y, 170, 60);
+            y += 68;
+        }
+
+        section("3. Alerts Analysis");
+
+        const alertCanvas = document.getElementById('alertChart');
+        if (alertCanvas) {
+            const img = alertCanvas.toDataURL('image/png');
+            doc.addImage(img, 'PNG', 20, y, 170, 55);
+            y += 63;
+        }
+
+        if (y > 250) {
+            doc.addPage();
+            y = 20;
+        }
+
+        section("4. AI Insights");
+
+        const insights = document.getElementById('insightsContainer')?.innerText || '';
+        const predictions = document.getElementById('predictionsContainer')?.innerText || '';
+        const rec = document.getElementById('recommendationsContainer')?.innerText || '';
+
+        const lines = doc.splitTextToSize(
+            insights + "\n\n" + predictions + "\n\n" + rec,
+            160
+        );
+
+        doc.setFontSize(10);
+        doc.text(lines, 20, y);
+
+        // Footer
+        const pages = doc.internal.getNumberOfPages();
+        for (let i = 1; i <= pages; i++) {
+            doc.setPage(i);
+            doc.setFontSize(9);
+            doc.setTextColor(120);
+            doc.text(`Page ${i}/${pages}`, 180, 290);
+        }
+
+        doc.save(`iot-report-${Date.now()}.pdf`);
+
+    } catch(e) {
+        console.error(e);
+        alert('PDF generation failed');
+    } finally {
+        if (loadingDiv) loadingDiv.style.display = 'none';
+    }
+}
     function init() {
         console.log('Initializing application...');
         initCharts();
