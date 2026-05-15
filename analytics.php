@@ -677,15 +677,28 @@ $username = $_SESSION['user_name'] ?? 'User';
                 const card = (x,y,w,h,c,t,v) => { doc.setFillColor(...c); doc.roundedRect(x,y,w,h,3,3,'F'); doc.setTextColor(255,255,255); doc.setFontSize(10); doc.text(t,x+4,y+7); doc.setFontSize(13); doc.text(String(v),x+4,y+16); };
 
                 // Page 1 - Cover
-                doc.setFillColor(15,23,42); doc.rect(0,0,W,H,'F');
-                doc.setFillColor(59,130,246); doc.circle(35,35,12,'F');
-                doc.setTextColor(255,255,255); doc.setFontSize(14); doc.text("IoT",30,38);
-                doc.setFontSize(24); doc.text("SMART ANALYTICS PRO",55,55); doc.text("CORPORATE REPORT",50,72);
-                doc.setDrawColor(96,165,250); doc.line(35,85,175,85);
-                doc.setFontSize(11); doc.text(`User: ${username}`,20,120);
-                doc.text(`Generated: ${new Date().toLocaleString('en-US')}`,20,128);
-                doc.text(`Device: ESP32 Smart Monitoring`,20,136);
+                doc.setFillColor(15,23,42);
+doc.rect(0, 0, W, H, 'F');
 
+// logo image
+const logo = new Image();
+logo.src = 'logo.png'; // حط logo.png في نفس dossier متاع analytics.php
+
+await new Promise((resolve) => {
+    logo.onload = resolve;
+    logo.onerror = resolve;
+});
+
+if (logo.complete && logo.naturalWidth > 0) {
+    doc.addImage(logo, 'PNG', 25, 28, 28, 28);
+}
+
+doc.setTextColor(255,255,255);
+doc.setFontSize(26);
+doc.text("ENVIRONET", 65, 48);
+
+doc.setFontSize(18);
+doc.text("SMART MONITORING REPORT", 50, 68);
                 // Generate QR Code
                 const qrDiv = document.createElement('div');
                 new QRCode(qrDiv, { text: window.location.href, width:100, height:100 });
