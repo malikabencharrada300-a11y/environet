@@ -13,6 +13,10 @@ $user = "postgres.gfwbtyjzpwvbwpxipdap";
 $password = "ghadaa2004+12+25";
 $port = "6543";
 
+// =====================================================
+// CONNECT
+// =====================================================
+
 try {
 
     $pdo = new PDO(
@@ -39,7 +43,31 @@ try {
 }
 
 // =====================================================
-// SENSOR DATA
+// RANGE
+// =====================================================
+
+$range = $_GET["range"] ?? "24h";
+
+$where = "";
+
+if ($range == "24h") {
+
+    $where =
+        "WHERE timestamp >= NOW() - INTERVAL '24 HOURS'";
+
+} elseif ($range == "7d") {
+
+    $where =
+        "WHERE timestamp >= NOW() - INTERVAL '7 DAYS'";
+
+} elseif ($range == "30d") {
+
+    $where =
+        "WHERE timestamp >= NOW() - INTERVAL '30 DAYS'";
+}
+
+// =====================================================
+// LAST SENSOR DATA
 // =====================================================
 
 $stmtSensor = $pdo->prepare("
@@ -55,7 +83,7 @@ $sensor =
         $stmtSensor->fetch(PDO::FETCH_ASSOC);
 
 // =====================================================
-// NETWORK DATA
+// LAST NETWORK DATA
 // =====================================================
 
 $stmtNetwork = $pdo->prepare("
@@ -111,7 +139,7 @@ if ($rssi <= -100) {
 }
 
 // =====================================================
-// DEVICE STATUS
+// STATUS
 // =====================================================
 
 $device_status =
@@ -137,7 +165,7 @@ if ($temperature >= 40 || $signal <= 20) {
 }
 
 // =====================================================
-// AI
+// AI SCORE
 // =====================================================
 
 $ai_score =
@@ -145,9 +173,15 @@ $ai_score =
             50,
             min(
                 100,
-                intval(($signal + (100 - $temperature)) / 2)
+                intval(
+                    ($signal + (100 - $temperature)) / 2
+                )
             )
         );
+
+// =====================================================
+// INSIGHTS
+// =====================================================
 
 if ($temperature > 35) {
 
@@ -165,15 +199,39 @@ if ($temperature > 35) {
             "Environment stable";
 }
 
-$predictions =
-        ($temperature > 28)
-        ? "Temperature may rise"
-        : "Stable conditions expected";
+// =====================================================
+// PREDICTIONS
+// =====================================================
 
-$recommendations =
-        ($signal < 40)
-        ? "Move device closer to router"
-        : "System operating normally";
+if ($temperature > 28) {
+
+    $predictions =
+            "Temperature may rise soon";
+
+} else {
+
+    $predictions =
+            "Stable conditions expected";
+}
+
+// =====================================================
+// RECOMMENDATIONS
+// =====================================================
+
+if ($signal < 40) {
+
+    $recommendations =
+            "Move device closer to router";
+
+} else {
+
+    $recommendations =
+            "System operating normally";
+}
+
+// =====================================================
+// ANOMALIES
+// =====================================================
 
 $anomalies =
         ($temperature > 40 || $signal < 20)
@@ -181,7 +239,7 @@ $anomalies =
         : "0";
 
 // =====================================================
-// ALERTS
+// ALERT COUNTS
 // =====================================================
 
 $stmtAlerts = $pdo->prepare("
@@ -193,6 +251,10 @@ $stmtAlerts = $pdo->prepare("
         COUNT(*) FILTER (
             WHERE type='signal'
         ) as signal_alerts,
+
+        COUNT(*) FILTER (
+            WHERE type='connection'
+        ) as connection_alerts,
 
         COUNT(*) as today_alerts
 
@@ -207,14 +269,15 @@ $alerts =
         $stmtAlerts->fetch(PDO::FETCH_ASSOC);
 
 // =====================================================
-// TEMPERATURE CHART
+// TEMPERATURE HISTORY CHART
 // =====================================================
 
 $stmtTempChart = $pdo->prepare("
     SELECT temperature
     FROM sensor_data
+    $where
     ORDER BY id DESC
-    LIMIT 20
+    LIMIT 50
 ");
 
 $stmtTempChart->execute();
@@ -231,14 +294,14 @@ foreach (array_reverse($tempRows) as $row) {
 }
 
 // =====================================================
-// SIGNAL CHART
+// SIGNAL HISTORY CHART
 // =====================================================
 
 $stmtSignalChart = $pdo->prepare("
     SELECT signal_strength
     FROM esp32_cam_data
     ORDER BY id DESC
-    LIMIT 20
+    LIMIT 50
 ");
 
 $stmtSignalChart->execute();
@@ -281,35 +344,93 @@ $history_chart = $temp_chart;
 
 $prediction_chart = [];
 
-foreach ($temp_chart as $v) {
+foreach ($temp_chart as $value) {
 
     $prediction_chart[] =
-            round($v + 1.5, 1);
+            round($value + 1.5, 1);
 }
 
 // =====================================================
-// ALERT CHART
+// TEMP ALERT CURVE
 // =====================================================
 
-$stmtAlertChart = $pdo->prepare("
+$stmtTempAlerts = $pdo->prepare("
     SELECT COUNT(*) as total
     FROM alerts
+    WHERE type='temperature'
     GROUP BY DATE(created_at),
              EXTRACT(HOUR FROM created_at)
     ORDER BY MAX(created_at) DESC
     LIMIT 20
 ");
 
-$stmtAlertChart->execute();
+$stmtTempAlerts->execute();
 
-$alertRows =
-        $stmtAlertChart->fetchAll(PDO::FETCH_ASSOC);
+$tempAlertRows =
+        $stmtTempAlerts->fetchAll(PDO::FETCH_ASSOC);
 
-$alert_chart = [];
+$temp_alert_chart = [];
 
-foreach (array_reverse($alertRows) as $row) {
+foreach (array_reverse($tempAlertRows) as $row) {
 
-    $alert_chart[] =
+    $temp_alert_chart[] =
+            intval($row["total"]);
+}
+
+// =====================================================
+// SIGNAL ALERT CURVE
+// =====================================================
+
+$stmtSignalAlerts = $pdo->prepare("
+    SELECT COUNT(*) as total
+    FROM alerts
+    WHERE type='signal'
+    GROUP BY DATE(created_at),
+             EXTRACT(HOUR FROM created_at)
+    ORDER BY MAX(created_at) DESC
+    LIMIT 20
+");
+
+$stmtSignalAlerts->execute();
+
+$signalAlertRows =
+        $stmtSignalAlerts->fetchAll(PDO::FETCH_ASSOC);
+
+$signal_alert_chart = [];
+
+foreach (array_reverse($signalAlertRows) as $row) {
+
+    $signal_alert_chart[] =
+            intval($row["total"]);
+}
+
+// =====================================================
+// CONNECTION ALERT CURVE
+// =====================================================
+
+$stmtConnectionAlerts = $pdo->prepare("
+    SELECT COUNT(*) as total
+    FROM alerts
+    WHERE type='connection'
+    GROUP BY DATE(created_at),
+             EXTRACT(HOUR FROM created_at)
+    ORDER BY MAX(created_at) DESC
+    LIMIT 20
+");
+
+$stmtConnectionAlerts->execute();
+
+$connectionAlertRows =
+        $stmtConnectionAlerts->fetchAll(PDO::FETCH_ASSOC);
+
+$connection_alert_chart = [];
+
+foreach (
+    array_reverse($connectionAlertRows)
+    as $row
+) {
+
+    $connection_alert_chart[] =
             intval($row["total"]);
 }
 
@@ -335,7 +456,9 @@ if (count($temp_chart) > 0) {
 } else {
 
     $history_min = "0°C";
+
     $history_max = "0°C";
+
     $history_avg = "0°C";
 }
 
@@ -404,7 +527,7 @@ echo json_encode([
             intval($alerts["signal_alerts"] ?? 0),
 
     "connection_alerts" =>
-            0,
+            intval($alerts["connection_alerts"] ?? 0),
 
     "today_alerts" =>
             intval($alerts["today_alerts"] ?? 0),
@@ -421,7 +544,14 @@ echo json_encode([
     "prediction_chart" =>
             $prediction_chart,
 
-    "alert_chart" =>
-            $alert_chart
+    "temp_alert_chart" =>
+            $temp_alert_chart,
+
+    "signal_alert_chart" =>
+            $signal_alert_chart,
+
+    "connection_alert_chart" =>
+            $connection_alert_chart
 ]);
+
 ?>
