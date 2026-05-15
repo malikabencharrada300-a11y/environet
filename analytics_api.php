@@ -35,7 +35,7 @@ try {
 } catch (Exception $e) {
 
     echo json_encode([
-        "status" => "error",
+        "success" => false,
         "message" => $e->getMessage()
     ]);
 
@@ -48,26 +48,21 @@ try {
 
 $range = $_GET["range"] ?? "24h";
 
-$where = "";
-
 if ($range == "24h") {
 
-    $where =
-        "WHERE timestamp >= NOW() - INTERVAL '24 HOURS'";
-
-} elseif ($range == "7d") {
-
-    $where =
-        "WHERE timestamp >= NOW() - INTERVAL '7 DAYS'";
+    $interval = "24 hours";
 
 } elseif ($range == "30d") {
 
-    $where =
-        "WHERE timestamp >= NOW() - INTERVAL '30 DAYS'";
+    $interval = "30 days";
+
+} else {
+
+    $interval = "7 days";
 }
 
 // =====================================================
-// LAST SENSOR DATA
+// SENSOR DATA
 // =====================================================
 
 $stmtSensor = $pdo->prepare("
@@ -83,7 +78,7 @@ $sensor =
         $stmtSensor->fetch(PDO::FETCH_ASSOC);
 
 // =====================================================
-// LAST NETWORK DATA
+// NETWORK DATA
 // =====================================================
 
 $stmtNetwork = $pdo->prepare("
@@ -122,7 +117,7 @@ $ping =
         intval($network["ping"] ?? 0);
 
 // =====================================================
-// RSSI -> SIGNAL %
+// SIGNAL %
 // =====================================================
 
 if ($rssi <= -100) {
@@ -139,7 +134,7 @@ if ($rssi <= -100) {
 }
 
 // =====================================================
-// STATUS
+// DEVICE STATUS
 // =====================================================
 
 $device_status =
@@ -244,6 +239,7 @@ $anomalies =
 
 $stmtAlerts = $pdo->prepare("
     SELECT
+
         COUNT(*) FILTER (
             WHERE type='temperature'
         ) as temp_alerts,
@@ -260,7 +256,7 @@ $stmtAlerts = $pdo->prepare("
 
     FROM alerts
 
-    WHERE DATE(created_at)=CURRENT_DATE
+    WHERE created_at >= NOW() - INTERVAL '$interval'
 ");
 
 $stmtAlerts->execute();
@@ -269,14 +265,14 @@ $alerts =
         $stmtAlerts->fetch(PDO::FETCH_ASSOC);
 
 // =====================================================
-// TEMPERATURE HISTORY CHART
+// TEMPERATURE CHART
 // =====================================================
 
 $stmtTempChart = $pdo->prepare("
     SELECT temperature
     FROM sensor_data
-    $where
-    ORDER BY id DESC
+    WHERE timestamp >= NOW() - INTERVAL '$interval'
+    ORDER BY id ASC
     LIMIT 50
 ");
 
@@ -287,20 +283,20 @@ $tempRows =
 
 $temp_chart = [];
 
-foreach (array_reverse($tempRows) as $row) {
+foreach ($tempRows as $row) {
 
     $temp_chart[] =
             floatval($row["temperature"]);
 }
 
 // =====================================================
-// SIGNAL HISTORY CHART
+// SIGNAL CHART
 // =====================================================
 
 $stmtSignalChart = $pdo->prepare("
     SELECT signal_strength
     FROM esp32_cam_data
-    ORDER BY id DESC
+    ORDER BY id ASC
     LIMIT 50
 ");
 
@@ -311,7 +307,7 @@ $signalRows =
 
 $signal_chart = [];
 
-foreach (array_reverse($signalRows) as $row) {
+foreach ($signalRows as $row) {
 
     $r =
             intval($row["signal_strength"]);
@@ -347,90 +343,95 @@ $prediction_chart = [];
 foreach ($temp_chart as $value) {
 
     $prediction_chart[] =
-            round($value + 1.5, 1);
+            round($value + rand(1, 3), 1);
 }
 
 // =====================================================
-// TEMP ALERT CURVE
+// ALERT CHARTS
 // =====================================================
 
-$stmtTempAlerts = $pdo->prepare("
-    SELECT COUNT(*) as total
+$stmtAlertChart = $pdo->prepare("
+
+    SELECT
+
+        TO_CHAR(created_at, 'DD/MM') as day,
+
+        COUNT(*) as total,
+
+        SUM(
+            CASE
+                WHEN type='temperature'
+                THEN 1
+                ELSE 0
+            END
+        ) as temperature,
+
+        SUM(
+            CASE
+                WHEN type='signal'
+                THEN 1
+                ELSE 0
+            END
+        ) as signal,
+
+        SUM(
+            CASE
+                WHEN type='connection'
+                THEN 1
+                ELSE 0
+            END
+        ) as connection
+
     FROM alerts
-    WHERE type='temperature'
-    GROUP BY DATE(created_at),
-             EXTRACT(HOUR FROM created_at)
-    ORDER BY MAX(created_at) DESC
-    LIMIT 20
+
+    WHERE created_at >= NOW() - INTERVAL '$interval'
+
+    GROUP BY
+        TO_CHAR(created_at, 'DD/MM'),
+        DATE(created_at)
+
+    ORDER BY DATE(created_at) ASC
+
 ");
 
-$stmtTempAlerts->execute();
+$stmtAlertChart->execute();
 
-$tempAlertRows =
-        $stmtTempAlerts->fetchAll(PDO::FETCH_ASSOC);
+$alertRows =
+        $stmtAlertChart->fetchAll(PDO::FETCH_ASSOC);
+
+// =====================================================
+// ALERT ARRAYS
+// =====================================================
 
 $temp_alert_chart = [];
 
-foreach (array_reverse($tempAlertRows) as $row) {
-
-    $temp_alert_chart[] =
-            intval($row["total"]);
-}
-
-// =====================================================
-// SIGNAL ALERT CURVE
-// =====================================================
-
-$stmtSignalAlerts = $pdo->prepare("
-    SELECT COUNT(*) as total
-    FROM alerts
-    WHERE type='signal'
-    GROUP BY DATE(created_at),
-             EXTRACT(HOUR FROM created_at)
-    ORDER BY MAX(created_at) DESC
-    LIMIT 20
-");
-
-$stmtSignalAlerts->execute();
-
-$signalAlertRows =
-        $stmtSignalAlerts->fetchAll(PDO::FETCH_ASSOC);
-
 $signal_alert_chart = [];
-
-foreach (array_reverse($signalAlertRows) as $row) {
-
-    $signal_alert_chart[] =
-            intval($row["total"]);
-}
-
-// =====================================================
-// CONNECTION ALERT CURVE
-// =====================================================
-
-$stmtConnectionAlerts = $pdo->prepare("
-    SELECT COUNT(*) as total
-    FROM alerts
-    WHERE type='connection'
-    GROUP BY DATE(created_at),
-             EXTRACT(HOUR FROM created_at)
-    ORDER BY MAX(created_at) DESC
-    LIMIT 20
-");
-
-$stmtConnectionAlerts->execute();
-
-$connectionAlertRows =
-        $stmtConnectionAlerts->fetchAll(PDO::FETCH_ASSOC);
 
 $connection_alert_chart = [];
 
-foreach (
-    array_reverse($connectionAlertRows)
-    as $row
-) {
+$alert_chart = [];
+
+$labels = [];
+
+// =====================================================
+// LOOP
+// =====================================================
+
+foreach ($alertRows as $row) {
+
+    $labels[] =
+            $row["day"];
+
+    $temp_alert_chart[] =
+            intval($row["temperature"]);
+
+    $signal_alert_chart[] =
+            intval($row["signal"]);
 
     $connection_alert_chart[] =
+            intval($row["connection"]);
+
+    $alert_chart[] =
             intval($row["total"]);
 }
 
@@ -463,10 +464,12 @@ if (count($temp_chart) > 0) {
 }
 
 // =====================================================
-// JSON RESPONSE
+// RESPONSE
 // =====================================================
 
 echo json_encode([
+
+    "success" => true,
 
     "device_status" =>
             $device_status,
@@ -475,20 +478,20 @@ echo json_encode([
             $timestamp,
 
     "uptime" =>
-            rand(1,24) . "h "
-            . rand(1,59) . "m",
+            rand(1, 24) . "h "
+            . rand(1, 59) . "m",
 
     "temperature" =>
             $temperature,
 
     "temp_trend" =>
-            rand(-3,5) . "°C",
+            rand(-3, 5) . "°C",
 
     "signal" =>
             $signal,
 
     "signal_trend" =>
-            rand(-10,10) . "%",
+            rand(-10, 10) . "%",
 
     "insights" =>
             $insights,
@@ -544,6 +547,9 @@ echo json_encode([
     "prediction_chart" =>
             $prediction_chart,
 
+    "labels" =>
+            $labels,
+
     "temp_alert_chart" =>
             $temp_alert_chart,
 
@@ -551,7 +557,10 @@ echo json_encode([
             $signal_alert_chart,
 
     "connection_alert_chart" =>
-            $connection_alert_chart
+            $connection_alert_chart,
+
+    "alert_chart" =>
+            $alert_chart
 ]);
 
 ?>
