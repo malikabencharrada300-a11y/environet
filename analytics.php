@@ -508,54 +508,81 @@ $username = $_SESSION['user_name'] ?? 'User';
         }
     }
 
-    function calculateAIScore(totalAlerts) {
-        // Calcul du score: 100 - (alertes * 5)
-        let score = 100 - (totalAlerts * 5);
-        score = Math.max(0, Math.min(100, score));
-        
-        const aiScoreSpan = document.getElementById('aiScore');
-        if (aiScoreSpan) {
-            aiScoreSpan.textContent = score + '%';
-            
-            if (score >= 80) {
-                aiScoreSpan.className = 'text-2xl font-bold text-green-600';
-            } else if (score >= 50) {
-                aiScoreSpan.className = 'text-2xl font-bold text-orange-500';
-            } else {
-                aiScoreSpan.className = 'text-2xl font-bold text-red-600';
-            }
-        }
-        
-        // Mettre à jour l'anomalie detection
-        const anomalySpan = document.getElementById('anomalyText');
-        if (anomalySpan) {
-            if (score >= 80) {
-                anomalySpan.textContent = '🟢 Normal operation';
-                anomalySpan.className = 'text-sm font-medium px-3 py-1 rounded-full bg-green-100 text-green-700';
-            } else if (score >= 50) {
-                anomalySpan.textContent = '🟡 Potential anomaly detected';
-                anomalySpan.className = 'text-sm font-medium px-3 py-1 rounded-full bg-yellow-100 text-yellow-700';
-            } else {
-                anomalySpan.textContent = '🔴 Critical anomaly detected';
-                anomalySpan.className = 'text-sm font-medium px-3 py-1 rounded-full bg-red-100 text-red-700';
-            }
-        }
-        
-        // Mettre à jour le statut IA
-        const aiStatusSpan = document.getElementById('aiStatus');
-        if (aiStatusSpan) {
-            if (score >= 80) {
-                aiStatusSpan.innerHTML = '● Active';
-                aiStatusSpan.className = 'text-sm font-semibold text-green-600';
-            } else if (score >= 50) {
-                aiStatusSpan.innerHTML = '● Warning';
-                aiStatusSpan.className = 'text-sm font-semibold text-orange-500';
-            } else {
-                aiStatusSpan.innerHTML = '● Critical';
-                aiStatusSpan.className = 'text-sm font-semibold text-red-600';
-            }
+  function calculateAIScore(totalAlerts = 0) {
+    const tempText = document.getElementById('currentTemp')?.textContent || '0';
+    const signalText = document.getElementById('currentSignal')?.textContent || '0';
+
+    const temp = parseFloat(tempText);
+    const signal = parseFloat(signalText);
+
+    let score = 100;
+
+    // Temperature penalty
+    if (temp > 30) score -= 35;
+    else if (temp > 27) score -= 20;
+    else if (temp > 24) score -= 8;
+
+    // Signal penalty
+    if (signal < 20) score -= 35;
+    else if (signal < 40) score -= 20;
+    else if (signal < 60) score -= 10;
+
+    // Alerts penalty
+    score -= totalAlerts * 2;
+
+    // Trend penalty
+    if (state.tempHistory.length >= 5) {
+        const variation = Math.max(...state.tempHistory.slice(-5)) - Math.min(...state.tempHistory.slice(-5));
+        if (variation > 3) score -= 10;
+        else if (variation > 1.5) score -= 5;
+    }
+
+    score = Math.max(0, Math.min(100, Math.round(score)));
+
+    // Display score
+    const aiScoreSpan = document.getElementById('aiScore');
+    if (aiScoreSpan) {
+        aiScoreSpan.textContent = score + '%';
+
+        if (score >= 80) {
+            aiScoreSpan.className = 'text-2xl font-bold text-green-600';
+        } else if (score >= 50) {
+            aiScoreSpan.className = 'text-2xl font-bold text-orange-500';
+        } else {
+            aiScoreSpan.className = 'text-2xl font-bold text-red-600';
         }
     }
+
+    // AI status
+    const aiStatusSpan = document.getElementById('aiStatus');
+    if (aiStatusSpan) {
+        if (score >= 80) {
+            aiStatusSpan.innerHTML = '● Excellent';
+            aiStatusSpan.className = 'text-sm font-semibold text-green-600';
+        } else if (score >= 50) {
+            aiStatusSpan.innerHTML = '● Moderate';
+            aiStatusSpan.className = 'text-sm font-semibold text-orange-500';
+        } else {
+            aiStatusSpan.innerHTML = '● Critical';
+            aiStatusSpan.className = 'text-sm font-semibold text-red-600';
+        }
+    }
+
+    // Anomaly
+    const anomalySpan = document.getElementById('anomalyText');
+    if (anomalySpan) {
+        if (score >= 80) {
+            anomalySpan.textContent = '🟢 Stable system';
+            anomalySpan.className = 'text-sm font-medium px-3 py-1 rounded-full bg-green-100 text-green-700';
+        } else if (score >= 50) {
+            anomalySpan.textContent = '🟡 Minor anomaly';
+            anomalySpan.className = 'text-sm font-medium px-3 py-1 rounded-full bg-yellow-100 text-yellow-700';
+        } else {
+            anomalySpan.textContent = '🔴 Major anomaly';
+            anomalySpan.className = 'text-sm font-medium px-3 py-1 rounded-full bg-red-100 text-red-700';
+        }
+    }
+}
 
     function filterAlerts() {
         console.log('Filter changed, reloading alerts...');
