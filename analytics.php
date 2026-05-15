@@ -24,6 +24,7 @@ $username = $_SESSION['username'] ?? 'User';
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.31/jspdf.plugin.autotable.min.js"></script>
 
     <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 
     <style>
         .status-online {
@@ -157,14 +158,14 @@ $username = $_SESSION['username'] ?? 'User';
     <div id="pdfLoading" class="pdf-loading">
         <div class="text-center">
             <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-600 mx-auto mb-4"></div>
-            <p class="text-gray-700 font-semibold">Generating PDF Report...</p>
+            <p class="text-gray-700 font-semibold">Generating PDF report...</p>
         </div>
     </div>
 
     <div class="container mx-auto p-6 max-w-7xl">
 
-        <!-- TOP BAR -->
         <div class="bg-white shadow-sm rounded-2xl px-6 py-4 mb-8 flex items-center justify-between">
+
             <div class="flex items-center gap-6">
                 <a href="dashboard.php"
                    class="flex items-center gap-2 bg-blue-800 hover:bg-blue-900 text-white px-5 py-2 rounded-full font-semibold transition">
@@ -193,18 +194,20 @@ $username = $_SESSION['username'] ?? 'User';
                     <span class="text-sm font-semibold text-blue-900">
                         <?php echo htmlspecialchars($username); ?>
                     </span>
+
                     <div class="w-9 h-9 rounded-full bg-blue-900 text-white flex items-center justify-center font-bold">
                         <?php echo strtoupper(substr($username,0,1)); ?>
                     </div>
                 </div>
+
             </div>
         </div>
 
-        <!-- MAIN CARDS -->
+
         <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
 
-            <!-- DEVICE -->
-            <div class="bg-white rounded-xl shadow-lg p-6 hover:shadow-xl transition">
+            <div class="bg-white rounded-xl shadow-lg p-6">
+
                 <div class="flex justify-between mb-4">
                     <h2 class="font-bold text-lg text-gray-800">Device Status</h2>
                     <span id="deviceStatusIcon" class="text-2xl">📡</span>
@@ -226,10 +229,12 @@ $username = $_SESSION['username'] ?? 'User';
                         <span id="uptime" class="font-mono text-sm">--</span>
                     </div>
                 </div>
+
             </div>
 
-            <!-- TEMP -->
-            <div class="bg-white rounded-xl shadow-lg p-6 hover:shadow-xl transition">
+
+            <div class="bg-white rounded-xl shadow-lg p-6">
+
                 <div class="flex justify-between mb-4">
                     <h2 class="font-bold text-lg text-gray-800">Temperature Analysis</h2>
                     <span id="tempIcon" class="text-2xl">🌡️</span>
@@ -240,8 +245,7 @@ $username = $_SESSION['username'] ?? 'User';
                         <span id="tempTrend" class="font-semibold">Analyzing...</span>
                     </p>
 
-                    <p class="text-gray-600 mt-1">
-                        Current Value:
+                    <p class="text-gray-600 mt-1">Current Value:
                         <span id="currentTemp" class="font-bold text-xl">--°C</span>
                     </p>
                 </div>
@@ -249,10 +253,12 @@ $username = $_SESSION['username'] ?? 'User';
                 <div class="chart-container">
                     <canvas id="tempTrendChart"></canvas>
                 </div>
+
             </div>
 
-            <!-- SIGNAL -->
-            <div class="bg-white rounded-xl shadow-lg p-6 hover:shadow-xl transition">
+
+            <div class="bg-white rounded-xl shadow-lg p-6">
+
                 <div class="flex justify-between mb-4">
                     <h2 class="font-bold text-lg text-gray-800">Network Analysis</h2>
                     <span id="signalIcon" class="text-2xl">📶</span>
@@ -263,8 +269,7 @@ $username = $_SESSION['username'] ?? 'User';
                         <span id="signalTrend" class="font-semibold">Analyzing...</span>
                     </p>
 
-                    <p class="text-gray-600 mt-1">
-                        Strength:
+                    <p class="text-gray-600 mt-1">Strength:
                         <span id="currentSignal" class="font-bold text-xl">--%</span>
                     </p>
                 </div>
@@ -272,17 +277,18 @@ $username = $_SESSION['username'] ?? 'User';
                 <div class="chart-container">
                     <canvas id="signalTrendChart"></canvas>
                 </div>
+
             </div>
 
         </div>
 
-        <!-- AI SECTION -->
+
         <div class="bg-gradient-to-r from-purple-50 to-blue-50 rounded-xl shadow-lg p-6 mb-6">
 
-            <div class="flex items-center justify-between mb-6">
+            <div class="flex justify-between mb-6">
                 <div>
                     <h2 class="text-2xl font-bold text-gray-800">Artificial Intelligence</h2>
-                    <p class="text-sm text-gray-600">Predictive Analysis & Anomalies</p>
+                    <p class="text-sm text-gray-600">Predictive analysis & anomalies</p>
                 </div>
 
                 <span id="aiStatus" class="text-sm font-semibold text-green-600">● Active</span>
@@ -292,41 +298,35 @@ $username = $_SESSION['username'] ?? 'User';
 
                 <div class="bg-white rounded-lg p-4 shadow">
                     <h3 class="font-bold text-purple-700 mb-3">Insights</h3>
-                    <div id="insightsContainer" class="space-y-2 text-sm">
-                        <p class="text-gray-500">Analyzing...</p>
-                    </div>
+                    <div id="insightsContainer" class="space-y-2 text-sm"></div>
                 </div>
 
                 <div class="bg-white rounded-lg p-4 shadow">
                     <h3 class="font-bold text-blue-700 mb-3">Predictions</h3>
-                    <div id="predictionsContainer" class="space-y-2 text-sm">
-                        <p class="text-gray-500">Computing...</p>
-                    </div>
+                    <div id="predictionsContainer" class="space-y-2 text-sm"></div>
                 </div>
 
                 <div class="bg-white rounded-lg p-4 shadow">
                     <h3 class="font-bold text-green-700 mb-3">Recommendations</h3>
-                    <div id="recommendationsContainer" class="space-y-2 text-sm">
-                        <p class="text-gray-500">Loading...</p>
-                    </div>
+                    <div id="recommendationsContainer" class="space-y-2 text-sm"></div>
                 </div>
 
             </div>
+
         </div>
 
-        <!-- CHARTS -->
+
         <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
 
-            <!-- HISTORY -->
             <div class="bg-white rounded-xl shadow-lg p-6">
 
-                <div class="flex items-center justify-between mb-4">
+                <div class="flex justify-between mb-4">
                     <h3 class="font-bold text-lg">📊 History Chart</h3>
 
                     <div class="flex space-x-2">
-                        <button onclick="switchHistoryView('24h')" class="px-3 py-1 text-sm rounded bg-blue-100 hover:bg-blue-200">24h</button>
-                        <button onclick="switchHistoryView('7d')" class="px-3 py-1 text-sm rounded bg-gray-100 hover:bg-gray-200">7d</button>
-                        <button onclick="switchHistoryView('30d')" class="px-3 py-1 text-sm rounded bg-gray-100 hover:bg-gray-200">30d</button>
+                        <button onclick="switchHistoryView('24h')" class="px-3 py-1 text-sm rounded bg-blue-100">24h</button>
+                        <button onclick="switchHistoryView('7d')" class="px-3 py-1 text-sm rounded bg-gray-100">7d</button>
+                        <button onclick="switchHistoryView('30d')" class="px-3 py-1 text-sm rounded bg-gray-100">30d</button>
                     </div>
                 </div>
 
@@ -340,10 +340,8 @@ $username = $_SESSION['username'] ?? 'User';
                     <span>Avg: <span id="historyAvg">--</span></span>
                 </div>
 
-                <!-- PREDICTIVE -->
                 <div class="mt-8">
-                    <h4 class="font-semibold text-purple-700 mb-2">🔮 Next 24h Prediction</h4>
-
+                    <h4 class="font-semibold text-purple-700 mb-2">🔮 24h Forecast</h4>
                     <div class="chart-container" style="height:220px;">
                         <canvas id="predictiveChart"></canvas>
                     </div>
@@ -351,19 +349,21 @@ $username = $_SESSION['username'] ?? 'User';
 
             </div>
 
-            <!-- ALERT -->
+
             <div class="bg-white rounded-xl shadow-lg p-6">
 
-                <div class="flex items-center justify-between mb-4">
+                <div class="flex justify-between mb-4">
                     <h3 class="font-bold text-lg">⚠️ Alert Chart</h3>
 
                     <select id="alertTypeFilter"
                             onchange="filterAlerts()"
                             class="px-3 py-1 text-sm rounded border border-gray-300">
+
                         <option value="all">All</option>
                         <option value="temperature">Temperature</option>
                         <option value="signal">Signal</option>
                         <option value="connection">Connection</option>
+
                     </select>
                 </div>
 
@@ -373,7 +373,7 @@ $username = $_SESSION['username'] ?? 'User';
 
                 <div class="mt-4">
                     <p class="text-sm text-gray-600">
-                        Today's Alerts:
+                        Today's alerts:
                         <span id="todayAlerts" class="font-bold text-red-600">0</span>
                     </p>
                 </div>
@@ -385,688 +385,594 @@ $username = $_SESSION['username'] ?? 'User';
     </div>
 
     <script>
-        const CONFIG = {
-            UPDATE_INTERVAL: 5000,
-            OFFLINE_THRESHOLD: 30000,
-            TEMP_WARNING: 24,
-            TEMP_CRITICAL: 28,
-            SIGNAL_WEAK: 50,
-            SIGNAL_CRITICAL: 30
-        };
+const CONFIG = {
+    UPDATE_INTERVAL: 5000,
+    OFFLINE_THRESHOLD: 30000,
+    TEMP_CRITICAL: 28,
+    TEMP_WARNING: 24,
+    SIGNAL_CRITICAL: 30,
+    SIGNAL_WARNING: 50
+};
 
-        const state = {
-            charts: {},
-            historyRange: '24h',
-            alertView: 'bar',
-            lastESP32Update: Date.now(),
-            currentData: []
-        };
+const state = {
+    charts: {},
+    lastUpdate: Date.now(),
+    currentPeriod: '24h',
+    alertView: 'bar'
+};
 
-        function safeNumber(v, def = 0){
-            const n = parseFloat(v);
-            return isNaN(n) ? def : n;
-        }
+function safeNum(v){
+    const n = parseFloat(v);
+    return isNaN(n) ? 0 : n;
+}
 
-        function randomColor(alpha = 1){
-            return `rgba(${Math.floor(Math.random()*200)},${Math.floor(Math.random()*200)},${Math.floor(Math.random()*200)},${alpha})`;
-        }
+function initCharts() {
 
-        function initCharts(){
+    // Temperature chart
+    state.charts.temp = new Chart(document.getElementById('tempTrendChart'), {
+        type: 'line',
+        data: { labels: [], datasets: [{
+            data: [],
+            borderColor: '#f97316',
+            backgroundColor: 'rgba(249,115,22,.12)',
+            fill: true,
+            tension: .4
+        }]},
+        options: { responsive:true, maintainAspectRatio:false, plugins:{legend:{display:false}} }
+    });
 
-            state.charts.temp = new Chart(document.getElementById('tempTrendChart'), {
-                type:'line',
-                data:{ labels:[], datasets:[{
-                    label:'Temperature',
-                    data:[],
-                    borderColor:'#f59e0b',
-                    backgroundColor:'rgba(245,158,11,0.15)',
-                    fill:true,
-                    tension:.4
-                }]},
-                options:{ responsive:true, maintainAspectRatio:false }
-            });
+    // Signal chart
+    state.charts.signal = new Chart(document.getElementById('signalTrendChart'), {
+        type: 'line',
+        data: { labels: [], datasets: [{
+            data: [],
+            borderColor: '#2563eb',
+            backgroundColor: 'rgba(37,99,235,.12)',
+            fill: true,
+            tension: .4
+        }]},
+        options: { responsive:true, maintainAspectRatio:false, plugins:{legend:{display:false}} }
+    });
 
-            state.charts.signal = new Chart(document.getElementById('signalTrendChart'), {
-                type:'line',
-                data:{ labels:[], datasets:[{
-                    label:'Signal',
-                    data:[],
-                    borderColor:'#3b82f6',
-                    backgroundColor:'rgba(59,130,246,0.15)',
-                    fill:true,
-                    tension:.4
-                }]},
-                options:{ responsive:true, maintainAspectRatio:false }
-            });
-
-            state.charts.history = new Chart(document.getElementById('historyChart'), {
-                type:'line',
-                data:{
-                    labels:[],
-                    datasets:[
-                        {
-                            label:'Temperature',
-                            data:[],
-                            borderColor:'#f59e0b',
-                            yAxisID:'y',
-                            tension:.35
-                        },
-                        {
-                            label:'Signal',
-                            data:[],
-                            borderColor:'#3b82f6',
-                            yAxisID:'y1',
-                            tension:.35
-                        }
-                    ]
+    // History chart
+    state.charts.history = new Chart(document.getElementById('historyChart'), {
+        type: 'line',
+        data: {
+            labels: [],
+            datasets: [
+                {
+                    label: 'Temperature °C',
+                    data: [],
+                    borderColor: '#f59e0b',
+                    backgroundColor: 'rgba(245,158,11,.08)',
+                    yAxisID: 'y',
+                    tension: .4,
+                    fill: true
                 },
-                options:{
-                    responsive:true,
-                    maintainAspectRatio:false,
-                    interaction:{ mode:'index', intersect:false },
-                    plugins:{
-                        zoom:{
-                            zoom:{ wheel:{enabled:true}, pinch:{enabled:true}, mode:'x' },
-                            pan:{ enabled:true, mode:'x' }
-                        }
-                    },
-                    scales:{
-                        y:{ position:'left' },
-                        y1:{ position:'right', grid:{ drawOnChartArea:false } }
-                    }
+                {
+                    label: 'Signal %',
+                    data: [],
+                    borderColor: '#3b82f6',
+                    backgroundColor: 'rgba(59,130,246,.08)',
+                    yAxisID: 'y1',
+                    tension: .4,
+                    fill: true
                 }
-            });
-
-            state.charts.alert = new Chart(document.getElementById('alertChart'), {
-                type:'bar',
-                data:{
-                    labels:[],
-                    datasets:[{
-                        label:'Alerts',
-                        data:[],
-                        backgroundColor:[]
-                    }]
-                },
-                options:{
-                    responsive:true,
-                    maintainAspectRatio:false,
-                    plugins:{
-                        zoom:{
-                            zoom:{ wheel:{enabled:true}, mode:'x' },
-                            pan:{ enabled:true, mode:'x' }
-                        }
-                    }
+            ]
+        },
+        options: {
+            responsive:true,
+            maintainAspectRatio:false,
+            interaction:{mode:'index',intersect:false},
+            plugins:{
+                zoom:{
+                    zoom:{wheel:{enabled:true}, pinch:{enabled:true}, mode:'x'},
+                    pan:{enabled:true, mode:'x'}
                 }
-            });
-
-            state.charts.predictive = new Chart(document.getElementById('predictiveChart'), {
-                type:'line',
-                data:{
-                    labels:[],
-                    datasets:[{
-                        label:'24h Prediction',
-                        data:[],
-                        borderColor:'#8b5cf6',
-                        borderDash:[6,6],
-                        tension:.4,
-                        fill: false
-                    }]
-                },
-                options:{ 
-                    responsive:true,
-                    maintainAspectRatio:false,
-                    scales: {
-                        y: {
-                            beginAtZero: false
-                        }
-                    }
-                }
-            });
-        }
-
-        function pushRealtime(chart, value, max = 20){
-            const now = new Date().toLocaleTimeString();
-            chart.data.labels.push(now);
-            chart.data.datasets[0].data.push(value);
-
-            while(chart.data.labels.length > max){
-                chart.data.labels.shift();
-                chart.data.datasets[0].data.shift();
-            }
-
-            chart.update();
-        }
-
-        async function switchHistoryView(period){
-
-            state.historyRange = period;
-
-            try {
-                const res = await fetch(`get_history.php?period=${period}&user_id=<?= $user_id ?>`);
-                const json = await res.json();
-
-                if(!json.success) return;
-
-                const rows = json.history.reverse();
-
-                const labels = rows.map(r=>{
-                    const d = new Date(r.timestamp);
-                    return period === '7d'
-                        ? d.toLocaleDateString()
-                        : d.toLocaleTimeString();
-                });
-
-                const temps = rows.map(r=>safeNumber(r.temperature));
-                const signals = rows.map(r=>safeNumber(r.signal_strength));
-
-                const c = state.charts.history;
-
-                c.data.labels = labels;
-                c.data.datasets[0].data = temps;
-                c.data.datasets[1].data = signals;
-                c.update();
-
-                updateHistoryStats(temps);
-                generatePrediction(temps);
-            } catch(e) {
-                console.error("Error loading history:", e);
+            },
+            scales:{
+                y:{position:'left'},
+                y1:{position:'right',grid:{drawOnChartArea:false}}
             }
         }
+    });
 
-        function updateHistoryStats(temps){
+    // Alert chart
+    state.charts.alert = new Chart(document.getElementById('alertChart'), {
+        type:'bar',
+        data:{
+            labels:[],
+            datasets:[{
+                label:'Alerts',
+                data:[],
+                backgroundColor:[]
+            }]
+        },
+        options:{
+            responsive:true,
+            maintainAspectRatio:false
+        }
+    });
 
-            if(!temps.length) return;
+    // Prediction chart
+    state.charts.predict = new Chart(document.getElementById('predictChart'), {
+        type:'line',
+        data:{
+            labels:[],
+            datasets:[{
+                label:'Next 24h Prediction',
+                data:[],
+                borderColor:'#8b5cf6',
+                backgroundColor:'rgba(139,92,246,.10)',
+                fill:true,
+                tension:.4
+            }]
+        },
+        options:{ responsive:true, maintainAspectRatio:false }
+    });
+}
 
-            const min = Math.min(...temps);
-            const max = Math.max(...temps);
-            const avg = temps.reduce((a,b)=>a+b,0)/temps.length;
+function pushMini(chart, value, max=20){
+    const now = new Date().toLocaleTimeString();
 
-            document.getElementById('historyMin').textContent = min.toFixed(1)+'°C';
-            document.getElementById('historyMax').textContent = max.toFixed(1)+'°C';
+    chart.data.labels.push(now);
+    chart.data.datasets[0].data.push(value);
+
+    while(chart.data.labels.length > max){
+        chart.data.labels.shift();
+        chart.data.datasets[0].data.shift();
+    }
+
+    chart.update();
+}
+
+async function switchHistoryView(period){
+    state.currentPeriod = period;
+
+    try{
+        const r = await fetch(`get_history.php?period=${period}`);
+        const j = await r.json();
+
+        if(!j.success) return;
+
+        const rows = j.history.reverse();
+
+        const labels = rows.map(x=>{
+            const d = new Date(x.timestamp);
+            return period === '7d'
+                ? d.toLocaleDateString()
+                : d.toLocaleTimeString();
+        });
+
+        const temp = rows.map(x=>safeNum(x.temperature));
+        const signal = rows.map(x=>safeNum(x.signal_strength));
+
+        state.charts.history.data.labels = labels;
+        state.charts.history.data.datasets[0].data = temp;
+        state.charts.history.data.datasets[1].data = signal;
+        state.charts.history.update();
+
+        if(temp.length){
+            const avg = temp.reduce((a,b)=>a+b,0)/temp.length;
+            document.getElementById('historyMin').textContent = Math.min(...temp).toFixed(1)+'°C';
+            document.getElementById('historyMax').textContent = Math.max(...temp).toFixed(1)+'°C';
             document.getElementById('historyAvg').textContent = avg.toFixed(1)+'°C';
         }
 
-        async function updateAlertChart(){
+        generatePrediction(temp);
 
-            try {
-                const res = await fetch(`get_alert_chart.php?user_id=<?= $user_id ?>`);
-                const json = await res.json();
+    }catch(e){ console.log(e); }
+}
 
-                if(!json.success) return;
+async function updateAlertChart(){
 
-                const filter = document.getElementById('alertTypeFilter').value;
-                let alerts = json.alerts;
+    try{
+        const r = await fetch("get_alert_chart.php");
+        const j = await r.json();
 
-                if(filter !== 'all'){
-                    alerts = alerts.filter(a=>{
-                        const msg = (a.message || '').toLowerCase();
+        if(!j.success) return;
 
-                        if(filter === 'temperature') return msg.includes('temp');
-                        if(filter === 'signal') return msg.includes('signal');
-                        if(filter === 'connection') return msg.includes('connection') || msg.includes('offline');
+        const labels = j.alerts.map(x=>x.day);
+        const values = j.alerts.map(x=>parseInt(x.total));
 
-                        return true;
-                    });
-                }
+        state.charts.alert.data.labels = labels;
+        state.charts.alert.data.datasets[0].data = values;
 
-                const grouped = {};
+        state.charts.alert.data.datasets[0].backgroundColor = values.map(v=>{
+            if(v >= 10) return '#dc2626';
+            if(v >= 5) return '#f59e0b';
+            return '#10b981';
+        });
 
-                alerts.forEach(a=>{
-                    grouped[a.day] = (grouped[a.day] || 0) + parseInt(a.total);
-                });
+        state.charts.alert.update();
 
-                const labels = Object.keys(grouped);
-                const values = Object.values(grouped);
+        document.getElementById('todayAlerts').textContent =
+            values.reduce((a,b)=>a+b,0);
 
-                const c = state.charts.alert;
+        calculateAIScore(values);
 
-                c.data.labels = labels;
-                c.data.datasets[0].data = values;
-                c.data.datasets[0].backgroundColor = values.map(v=>{
-                    if(v >= 10) return '#dc2626';
-                    if(v >= 5) return '#f59e0b';
-                    return '#10b981';
-                });
+    }catch(e){ console.log(e); }
+}
 
-                c.update();
+function calculateAIScore(alerts){
 
-                document.getElementById('todayAlerts').textContent = values.reduce((a,b)=>a+b,0);
-            } catch(e) {
-                console.error("Error loading alerts:", e);
+    if(!alerts.length) return;
+
+    const total = alerts.reduce((a,b)=>a+b,0);
+    const score = Math.max(0, 100 - total*3);
+
+    document.getElementById('aiScore').textContent = score + '%';
+
+    let status = 'Healthy';
+    if(score < 70) status = 'Warning';
+    if(score < 50) status = 'Critical';
+
+    document.getElementById('aiHealth').textContent = status;
+}
+
+function generatePrediction(history){
+
+    if(history.length < 5) return;
+
+    const avg = history.slice(-5).reduce((a,b)=>a+b,0)/5;
+
+    const labels = [];
+    const values = [];
+
+    for(let i=1;i<=24;i++){
+        labels.push(i + 'h');
+        values.push((avg + (Math.random()*2-1)).toFixed(2));
+    }
+
+    state.charts.predict.data.labels = labels;
+    state.charts.predict.data.datasets[0].data = values;
+    state.charts.predict.update();
+}
+
+function detectAnomaly(temp, signal){
+
+    let anomaly = 'Normal';
+
+    if(temp > 30 || signal < 20){
+        anomaly = 'Critical anomaly detected';
+    } else if(temp > 26 || signal < 40){
+        anomaly = 'Potential anomaly';
+    }
+
+    document.getElementById('anomalyText').textContent = anomaly;
+}
+
+function analyzeTemp(temp){
+
+    document.getElementById('currentTemp').textContent = temp.toFixed(1)+'°C';
+
+    let status='Stable';
+
+    if(temp > CONFIG.TEMP_CRITICAL) status='Critical';
+    else if(temp > CONFIG.TEMP_WARNING) status='High';
+
+    document.getElementById('tempTrend').textContent = status;
+
+    pushMini(state.charts.temp, temp);
+}
+
+function analyzeSignal(signal){
+
+    document.getElementById('currentSignal').textContent = signal+'%';
+
+    let status='Good';
+
+    if(signal < CONFIG.SIGNAL_CRITICAL) status='Critical';
+    else if(signal < CONFIG.SIGNAL_WARNING) status='Weak';
+
+    document.getElementById('signalTrend').textContent = status;
+
+    pushMini(state.charts.signal, signal);
+}
+
+function updateDeviceStatus(){
+
+    const diff = Date.now() - state.lastUpdate;
+    const online = diff < CONFIG.OFFLINE_THRESHOLD;
+
+    document.getElementById('deviceStatus').textContent = online ? 'Online':'Offline';
+    document.getElementById('liveStatusText').textContent = online ? 'Live':'Offline';
+}
+
+function updateUptime(){
+    const sec = Math.floor((Date.now() - state.lastUpdate)/1000);
+    document.getElementById('uptime').textContent = sec + ' sec';
+}
+
+async function loadAnalytics(){
+
+    try{
+        const r = await fetch("get_latest_data.php?user_id=<?= $user_id ?>");
+        const j = await r.json();
+
+        if(!j.success || !j.data) return;
+
+        state.lastUpdate = Date.now();
+
+        const temp = safeNum(j.data.temperature);
+        const signal = safeNum(j.data.signal_strength);
+
+        document.getElementById('lastSeen').textContent =
+            new Date().toLocaleTimeString();
+
+        analyzeTemp(temp);
+        analyzeSignal(signal);
+        detectAnomaly(temp, signal);
+
+        document.getElementById('insightsContainer').innerHTML = `
+            <p>Temperature: ${temp.toFixed(1)} °C</p>
+            <p>Signal: ${signal}%</p>
+        `;
+
+        document.getElementById('predictionsContainer').innerHTML = `
+            <p>Forecast stable for next hours</p>
+        `;
+
+        document.getElementById('recommendationsContainer').innerHTML = `
+            <p>System operating normally</p>
+        `;
+
+        await updateAlertChart();
+
+    }catch(e){ console.log(e); }
+}
+
+async function generatePDFReport() {
+    const loadingDiv = document.getElementById('pdfLoading');
+    if (loadingDiv) loadingDiv.style.display = 'block';
+
+    try {
+        const { jsPDF } = window.jspdf;
+        const doc = new jsPDF('p', 'mm', 'a4');
+        const W = 210;
+        const H = 297;
+
+        const username = "<?= htmlspecialchars($username) ?>";
+        const currentTemp = document.getElementById('currentTemp')?.textContent || '--';
+        const currentSignal = document.getElementById('currentSignal')?.textContent || '--';
+        const aiScore = document.getElementById('aiScore')?.textContent || '--';
+        const anomaly = document.getElementById('anomalyText')?.textContent || '--';
+        const deviceStatus = document.getElementById('deviceStatus')?.textContent || '--';
+
+        const scoreNum = parseFloat(aiScore) || 0;
+        const tempNum = parseFloat(currentTemp) || 0;
+        const signalNum = parseFloat(currentSignal) || 0;
+
+        // ---------- Helpers ----------
+        const addHeader = (title) => {
+            doc.setFillColor(30, 64, 175);
+            doc.rect(0, 0, W, 18, 'F');
+            doc.setTextColor(255,255,255);
+            doc.setFontSize(15);
+            doc.text(title, 15, 12);
+        };
+
+        const addFooter = () => {
+            const pages = doc.internal.getNumberOfPages();
+            for (let i = 1; i <= pages; i++) {
+                doc.setPage(i);
+                doc.setTextColor(120);
+                doc.setFontSize(8);
+                doc.text(`Smart IoT Company Report • Page ${i}/${pages}`, 15, 292);
             }
+        };
+
+        const card = (x,y,w,h,color,title,val) => {
+            doc.setFillColor(...color);
+            doc.roundedRect(x,y,w,h,3,3,'F');
+            doc.setTextColor(255,255,255);
+            doc.setFontSize(10);
+            doc.text(title,x+4,y+7);
+            doc.setFontSize(13);
+            doc.text(String(val),x+4,y+16);
+        };
+
+        // ---------- Generate QR ----------
+        const qrDiv = document.createElement('div');
+        new QRCode(qrDiv, {
+            text: window.location.href,
+            width: 100,
+            height: 100
+        });
+        await new Promise(r => setTimeout(r, 300));
+        const qrImg = qrDiv.querySelector('img')?.src || qrDiv.querySelector('canvas')?.toDataURL();
+
+        // ================= PAGE 1 COVER =================
+        doc.setFillColor(15,23,42);
+        doc.rect(0,0,W,H,'F');
+
+        // logo
+        doc.setFillColor(59,130,246);
+        doc.circle(35,35,12,'F');
+        doc.setTextColor(255,255,255);
+        doc.setFontSize(14);
+        doc.text("IoT", 30, 38);
+
+        doc.setFontSize(24);
+        doc.text("SMART ANALYTICS", 55, 55);
+        doc.text("CORPORATE REPORT", 50, 72);
+
+        doc.setDrawColor(96,165,250);
+        doc.line(35,85,175,85);
+
+        doc.setFontSize(11);
+        doc.text(`User: ${username}`, 20, 120);
+        doc.text(`Generated: ${new Date().toLocaleString()}`, 20, 128);
+        doc.text(`Device: ESP32 Smart Monitoring`, 20, 136);
+
+        if (qrImg) doc.addImage(qrImg, 'PNG', 145, 110, 35, 35);
+
+        // ================= PAGE 2 DASHBOARD =================
+        doc.addPage();
+        addHeader("Executive Dashboard");
+
+        let y = 30;
+
+        card(15,y,42,22,[249,115,22],"TEMP",currentTemp);
+        card(62,y,42,22,[37,99,235],"SIGNAL",currentSignal);
+        card(109,y,42,22,[139,92,246],"AI SCORE",aiScore);
+        card(156,y,39,22,[16,185,129],"STATUS",deviceStatus);
+
+        y += 35;
+
+        // Gauge
+        doc.setFontSize(14);
+        doc.setTextColor(0);
+        doc.text("AI Gauge", 15, y);
+
+        const centerX = 60;
+        const centerY = y + 35;
+        const radius = 25;
+
+        doc.setDrawColor(220);
+        doc.setLineWidth(6);
+        doc.arc(centerX, centerY, radius, radius, 180, 360);
+
+        const angle = 180 + (scoreNum * 1.8);
+        const rad = angle * Math.PI / 180;
+        const x2 = centerX + radius * Math.cos(rad);
+        const y2 = centerY + radius * Math.sin(rad);
+
+        doc.setDrawColor(scoreNum > 70 ? 34 : scoreNum > 40 ? 245 : 220, scoreNum > 70 ? 197 : scoreNum > 40 ? 158 : 38, 94);
+        doc.line(centerX, centerY, x2, y2);
+
+        doc.setFontSize(16);
+        doc.text(aiScore, centerX - 7, centerY + 8);
+
+        // Pie
+        const total = 100;
+        const risk = 100 - scoreNum;
+        const safe = scoreNum;
+        const cx = 150;
+        const cy = y + 35;
+        const r = 20;
+
+        let safeAngle = (safe / total) * 360;
+
+        doc.setFillColor(34,197,94);
+        doc.circle(cx, cy, r, 'F');
+
+        doc.setFillColor(239,68,68);
+        doc.setDrawColor(239,68,68);
+
+        for(let i=0;i<safeAngle;i+=2){
+            const a1 = (i-90)*Math.PI/180;
+            const a2 = (i+2-90)*Math.PI/180;
+            doc.triangle(
+                cx, cy,
+                cx + r*Math.cos(a1), cy + r*Math.sin(a1),
+                cx + r*Math.cos(a2), cy + r*Math.sin(a2),
+                'F'
+            );
         }
 
-        function filterAlerts(){
-            updateAlertChart();
+        // ================= PAGE 3 CHARTS =================
+        doc.addPage();
+        addHeader("Analytics Charts");
+        y = 28;
+
+        const history = document.getElementById('historyChart');
+        const alerts = document.getElementById('alertChart');
+        const predict = document.getElementById('predictChart');
+
+        doc.text("History",15,y);
+        y += 5;
+        if(history) doc.addImage(history.toDataURL('image/png'),'PNG',15,y,180,60);
+        y += 70;
+
+        doc.text("Alerts",15,y);
+        y += 5;
+        if(alerts) doc.addImage(alerts.toDataURL('image/png'),'PNG',15,y,180,55);
+        y += 65;
+
+        doc.text("Prediction",15,y);
+        y += 5;
+        if(predict) doc.addImage(predict.toDataURL('image/png'),'PNG',15,y,180,45);
+
+        // ================= PAGE 4 TABLE =================
+        doc.addPage();
+        addHeader("Technical Metrics");
+        y = 30;
+
+        doc.autoTable({
+            startY: y,
+            head: [['Metric','Value','Evaluation']],
+            body: [
+                ['Temperature', currentTemp, tempNum > 28 ? 'High' : 'Normal'],
+                ['Signal', currentSignal, signalNum < 40 ? 'Weak' : 'Stable'],
+                ['AI Score', aiScore, scoreNum > 70 ? 'Healthy' : 'Risk'],
+                ['Anomaly', anomaly, anomaly]
+            ],
+            theme: 'grid',
+            headStyles: { fillColor: [30,64,175] }
+        });
+
+        // signature
+        y = doc.lastAutoTable.finalY + 40;
+        doc.line(30,y,90,y);
+        doc.text("Technical Supervisor", 42, y + 8);
+
+        doc.line(120,y,180,y);
+        doc.text("System Signature", 137, y + 8);
+
+        // ================= PAGE 5 CONCLUSION =================
+        doc.addPage();
+        addHeader("AI Conclusion");
+
+        y = 35;
+        let conclusion = "";
+
+        if(scoreNum >= 80){
+            conclusion = "The monitored environment operates within optimal parameters. AI confirms healthy status and predictive stability.";
+        } else if(scoreNum >= 50){
+            conclusion = "Moderate operational instability detected. Preventive maintenance recommended.";
+        } else {
+            conclusion = "Critical anomalies detected. Immediate intervention required.";
         }
 
-        function analyzeTemperature(temp){
-
-            document.getElementById('currentTemp').textContent = temp.toFixed(1)+'°C';
-
-            let txt = 'Stable';
-            let cls = 'status-good';
-            let icon = '🌡️';
-
-            if(temp >= CONFIG.TEMP_CRITICAL){
-                txt = 'Critical';
-                cls = 'status-critical';
-                icon = '🔥';
-            }else if(temp >= CONFIG.TEMP_WARNING){
-                txt = 'High';
-                cls = 'status-warning';
-            }
-
-            document.getElementById('tempTrend').textContent = txt;
-            document.getElementById('tempTrend').className = 'font-semibold '+cls;
-            document.getElementById('tempIcon').textContent = icon;
-
-            pushRealtime(state.charts.temp, temp);
-        }
-
-        function analyzeSignal(signal){
-
-            document.getElementById('currentSignal').textContent = signal+'%';
-
-            let txt = 'Good';
-            let cls = 'status-good';
-
-            if(signal <= CONFIG.SIGNAL_CRITICAL){
-                txt = 'Critical';
-                cls = 'status-critical';
-            }else if(signal <= CONFIG.SIGNAL_WEAK){
-                txt = 'Weak';
-                cls = 'status-warning';
-            }
-
-            document.getElementById('signalTrend').textContent = txt;
-            document.getElementById('signalTrend').className = 'font-semibold '+cls;
-
-            pushRealtime(state.charts.signal, signal);
-        }
-
-        function calculateAIScore(temp, signal){
-
-            let score = 100;
-
-            if(temp > 24) score -= 15;
-            if(temp > 28) score -= 25;
-
-            if(signal < 50) score -= 15;
-            if(signal < 30) score -= 25;
-
-            return Math.max(score, 0);
-        }
-
-        function detectAnomaly(values){
-
-            if(values.length < 5) return false;
-
-            const avg = values.reduce((a,b)=>a+b,0)/values.length;
-            const last = values[values.length-1];
-
-            return Math.abs(last-avg) > 5;
-        }
-
-        function generatePrediction(history){
-
-            if(history.length < 5) return;
-
-            const avg = history.reduce((a,b)=>a+b,0)/history.length;
-
-            const pred = [];
-            const labels = [];
-
-            for(let i=1;i<=24;i++){
-                pred.push(avg + (Math.random()*2 - 1));
-                labels.push(i+'h');
-            }
-
-            state.charts.predictive.data.labels = labels;
-            state.charts.predictive.data.datasets[0].data = pred;
-            state.charts.predictive.update();
-        }
-
-        function updateAI(temp, signal){
-
-            const score = calculateAIScore(temp, signal);
-
-            const tempValues = state.charts.temp.data.datasets[0].data;
-            const anomaly = detectAnomaly(tempValues);
-
-            let scoreClass = 'ai-score-high';
-            if(score < 50) scoreClass = 'ai-score-low';
-            else if(score < 70) scoreClass = 'ai-score-medium';
-
-            let insight = `
-                <p>AI Score: <span class="${scoreClass}">${score}/100</span></p>
-                <p>Temperature: ${temp.toFixed(1)}°C</p>
-                <p>Signal: ${signal}%</p>
-            `;
-
-            let prediction = `
-                <p>${temp > 27 ? 'Overheating risk detected' : 'Stability expected'}</p>
-            `;
-
-            let recommendation = `
-                <p>${signal < 40 ? 'Check network connection' : 'System stable'}</p>
-            `;
-
-            if(anomaly){
-                insight += `<p class="text-red-600 font-bold">Anomaly detected!</p>`;
-            }
-
-            document.getElementById('insightsContainer').innerHTML = insight;
-            document.getElementById('predictionsContainer').innerHTML = prediction;
-            document.getElementById('recommendationsContainer').innerHTML = recommendation;
-        }
-
-        function checkOffline(){
-
-            const diff = Date.now() - state.lastESP32Update;
-            const online = diff < CONFIG.OFFLINE_THRESHOLD;
-
-            document.getElementById('deviceStatus').textContent = online ? 'Online' : 'Offline';
-            document.getElementById('deviceStatus').className = online ? 'font-semibold status-online' : 'font-semibold status-offline';
-            document.getElementById('liveStatusText').textContent = online ? 'Real-time' : 'Offline';
-        }
-
-        function updateUptime(){
-
-            const sec = Math.floor((Date.now() - state.lastESP32Update)/1000);
-            document.getElementById('uptime').textContent = sec+'s';
-        }
-
-        async function loadAnalytics(){
-
-            try{
-                const res = await fetch(`get_latest_data.php?user_id=<?= $user_id ?>`);
-                const json = await res.json();
-
-                if(!json.success || !json.data) return;
-
-                const temp = safeNumber(json.data.temperature);
-                const signal = safeNumber(json.data.signal_strength);
-
-                state.lastESP32Update = Date.now();
-
-                document.getElementById('lastSeen').textContent = new Date().toLocaleTimeString();
-
-                analyzeTemperature(temp);
-                analyzeSignal(signal);
-                updateAI(temp, signal);
-
-                await updateAlertChart();
-
-            }catch(e){
-                console.log(e);
-            }
-        }
-
-        async function generatePDFReport(){
-
-            document.getElementById('pdfLoading').style.display='block';
-
-            try {
-                const { jsPDF } = window.jspdf;
-                const doc = new jsPDF('p', 'mm', 'a4');
-                const W = 210;
-                const H = 297;
-
-                const currentTemp = document.getElementById('currentTemp')?.textContent || '--';
-                const currentSignal = document.getElementById('currentSignal')?.textContent || '--';
-                const aiScore = document.getElementById('aiScore')?.textContent || '--';
-                const anomaly = document.getElementById('anomalyText')?.textContent || '--';
-                const deviceStatus = document.getElementById('deviceStatus')?.textContent || '--';
-
-                const scoreNum = parseFloat(aiScore) || 0;
-                const tempNum = parseFloat(currentTemp) || 0;
-                const signalNum = parseFloat(currentSignal) || 0;
-
-                // ---------- Helpers ----------
-                const addHeader = (title) => {
-                    doc.setFillColor(30, 64, 175);
-                    doc.rect(0, 0, W, 18, 'F');
-                    doc.setTextColor(255,255,255);
-                    doc.setFontSize(15);
-                    doc.text(title, 15, 12);
-                };
-
-                const addFooter = () => {
-                    const pages = doc.internal.getNumberOfPages();
-                    for (let i = 1; i <= pages; i++) {
-                        doc.setPage(i);
-                        doc.setTextColor(120);
-                        doc.setFontSize(8);
-                        doc.text(`Smart IoT Company Report • Page ${i}/${pages}`, 15, 292);
-                    }
-                };
-
-                const card = (x,y,w,h,color,title,val) => {
-                    doc.setFillColor(...color);
-                    doc.roundedRect(x,y,w,h,3,3,'F');
-                    doc.setTextColor(255,255,255);
-                    doc.setFontSize(10);
-                    doc.text(title,x+4,y+7);
-                    doc.setFontSize(13);
-                    doc.text(String(val),x+4,y+16);
-                };
-
-                // ================= PAGE 1 COVER =================
-                doc.setFillColor(15,23,42);
-                doc.rect(0,0,W,H,'F');
-
-                // logo
-                doc.setFillColor(59,130,246);
-                doc.circle(35,35,12,'F');
-                doc.setTextColor(255,255,255);
-                doc.setFontSize(14);
-                doc.text("IoT", 30, 38);
-
-                doc.setFontSize(24);
-                doc.text("SMART ANALYTICS", 55, 55);
-                doc.text("CORPORATE REPORT", 50, 72);
-
-                doc.setDrawColor(96,165,250);
-                doc.line(35,85,175,85);
-
-                doc.setFontSize(11);
-                doc.text(`User: <?= htmlspecialchars($username) ?>`, 20, 120);
-                doc.text(`Generated: ${new Date().toLocaleString()}`, 20, 128);
-                doc.text(`Device: ESP32 Smart Monitoring`, 20, 136);
-
-                // ================= PAGE 2 DASHBOARD =================
-                doc.addPage();
-                addHeader("Executive Dashboard");
-
-                let y = 30;
-
-                card(15,y,42,22,[249,115,22],"TEMP",currentTemp);
-                card(62,y,42,22,[37,99,235],"SIGNAL",currentSignal);
-                card(109,y,42,22,[139,92,246],"AI SCORE",aiScore);
-                card(156,y,39,22,[16,185,129],"STATUS",deviceStatus);
-
-                y += 35;
-
-                // Gauge with animation
-                doc.setFontSize(14);
-                doc.setTextColor(0);
-                doc.text("AI Gauge", 15, y);
-
-                const centerX = 60;
-                const centerY = y + 35;
-                const radius = 25;
-
-                for (let frame = 0; frame < 5; frame++) {
-                    if (frame > 0) {
-                        doc.setFillColor(255, 255, 255);
-                        doc.rect(30, y + 5, 60, 60, 'F');
-                    }
-                    
-                    doc.setDrawColor(220);
-                    doc.setLineWidth(6);
-                    doc.arc(centerX, centerY, radius, radius, 180, 360);
-
-                    const angle = 180 + (scoreNum * 1.8 * (frame + 1) / 5);
-                    const rad = angle * Math.PI / 180;
-                    const x2 = centerX + radius * Math.cos(rad);
-                    const y2 = centerY + radius * Math.sin(rad);
-
-                    doc.setDrawColor(scoreNum > 70 ? 34 : scoreNum > 40 ? 245 : 220, scoreNum > 70 ? 197 : scoreNum > 40 ? 158 : 38, 94);
-                    doc.setLineWidth(3 + frame * 0.5);
-                    doc.line(centerX, centerY, x2, y2);
-
-                    doc.setFontSize(16);
-                    doc.text(aiScore, centerX - 7, centerY + 8);
-                    
-                    await new Promise(r => setTimeout(r, 30));
-                }
-
-                // Pie with animation
-                const total = 100;
-                const risk = 100 - scoreNum;
-                const safe = scoreNum;
-                const cx = 150;
-                const cy = y + 35;
-                const r = 20;
-
-                let safeAngle = (safe / total) * 360;
-
-                for (let frame = 0; frame < 5; frame++) {
-                    if (frame > 0) {
-                        doc.setFillColor(255, 255, 255);
-                        doc.circle(cx, cy, r + 1, 'F');
-                    }
-                    
-                    doc.setFillColor(34,197,94);
-                    doc.circle(cx, cy, r, 'F');
-
-                    doc.setFillColor(239,68,68);
-                    doc.setDrawColor(239,68,68);
-
-                    const currentAngle = safeAngle * (frame + 1) / 5;
-                    for(let i=0;i<currentAngle;i+=2){
-                        const a1 = (i-90)*Math.PI/180;
-                        const a2 = (i+2-90)*Math.PI/180;
-                        doc.triangle(
-                            cx, cy,
-                            cx + r*Math.cos(a1), cy + r*Math.sin(a1),
-                            cx + r*Math.cos(a2), cy + r*Math.sin(a2),
-                            'F'
-                        );
-                    }
-                    await new Promise(r => setTimeout(r, 30));
-                }
-
-                // ================= PAGE 3 CHARTS =================
-                doc.addPage();
-                addHeader("Analytics Charts");
-                y = 28;
-
-                const history = document.getElementById('historyChart');
-                const alert = document.getElementById('alertChart');
-                const predictive = document.getElementById('predictiveChart');
-
-                doc.text("History",15,y);
-                y += 5;
-                if(history) {
-                    doc.addImage(history.toDataURL('image/png'),'PNG',15,y,180,60);
-                }
-                y += 70;
-
-                doc.text("Alerts",15,y);
-                y += 5;
-                if(alert) {
-                    doc.addImage(alert.toDataURL('image/png'),'PNG',15,y,180,55);
-                }
-                y += 65;
-
-                doc.text("Prediction",15,y);
-                y += 5;
-                if(predictive) {
-                    doc.addImage(predictive.toDataURL('image/png'),'PNG',15,y,180,45);
-                }
-
-                // ================= PAGE 4 TABLE =================
-                doc.addPage();
-                addHeader("Technical Metrics");
-                y = 30;
-
-                doc.autoTable({
-                    startY: y,
-                    head: [['Metric','Value','Evaluation']],
-                    body: [
-                        ['Temperature', currentTemp, tempNum > 28 ? 'High' : 'Normal'],
-                        ['Signal', currentSignal, signalNum < 40 ? 'Weak' : 'Stable'],
-                        ['AI Score', aiScore, scoreNum > 70 ? 'Healthy' : 'Risk'],
-                        ['Anomaly', anomaly, anomaly]
-                    ],
-                    theme: 'grid',
-                    headStyles: { fillColor: [30,64,175] }
-                });
-
-                // signature
-                y = doc.lastAutoTable.finalY + 40;
-                doc.line(30,y,90,y);
-                doc.text("Technical Supervisor", 42, y + 8);
-
-                doc.line(120,y,180,y);
-                doc.text("System Signature", 137, y + 8);
-
-                // ================= PAGE 5 CONCLUSION =================
-                doc.addPage();
-                addHeader("AI Conclusion");
-
-                y = 35;
-                let conclusion = "";
-
-                if(scoreNum >= 80){
-                    conclusion = "The monitored environment operates within optimal parameters. AI confirms healthy status and predictive stability.";
-                } else if(scoreNum >= 50){
-                    conclusion = "Moderate operational instability detected. Preventive maintenance recommended.";
-                } else {
-                    conclusion = "Critical anomalies detected. Immediate intervention required.";
-                }
-
-                doc.setTextColor(0);
-                doc.setFontSize(12);
-                doc.text(doc.splitTextToSize(conclusion, 170), 15, y);
-
-                y += 30;
-
-                const insights = document.getElementById('insightsContainer')?.innerText || '';
-                const predictions = document.getElementById('predictionsContainer')?.innerText || '';
-                const recommendations = document.getElementById('recommendationsContainer')?.innerText || '';
-
-                const all = `${insights}\n\n${predictions}\n\n${recommendations}`;
-                doc.setFontSize(10);
-                doc.text(doc.splitTextToSize(all, 170), 15, y);
-
-                addFooter();
-
-                doc.save(`corporate-report-${Date.now()}.pdf`);
-            } catch(e) {
-                console.error(e);
-                alert("PDF generation failed");
-            } finally {
-                document.getElementById('pdfLoading').style.display='none';
-            }
-        }
-
-        function init(){
-
-            initCharts();
-
-            switchHistoryView('24h');
-            updateAlertChart();
-            loadAnalytics();
-
-            setInterval(loadAnalytics, CONFIG.UPDATE_INTERVAL);
-            setInterval(checkOffline, 5000);
-            setInterval(updateUptime, 1000);
-        }
-
-        document.addEventListener('DOMContentLoaded', init);
-    </script>
+        doc.setTextColor(0);
+        doc.setFontSize(12);
+        doc.text(doc.splitTextToSize(conclusion, 170), 15, y);
+
+        y += 30;
+
+        const insights = document.getElementById('insightsContainer')?.innerText || '';
+        const pred = document.getElementById('predictionsContainer')?.innerText || '';
+        const rec = document.getElementById('recommendationsContainer')?.innerText || '';
+
+        const all = `${insights}\n\n${pred}\n\n${rec}`;
+        doc.setFontSize(10);
+        doc.text(doc.splitTextToSize(all, 170), 15, y);
+
+        addFooter();
+
+        doc.save(`corporate-report-${Date.now()}.pdf`);
+
+    } catch(e) {
+        console.error(e);
+        alert("PDF generation failed");
+    } finally {
+        if (loadingDiv) loadingDiv.style.display = 'none';
+    }
+}
+
+function init(){
+    initCharts();
+    switchHistoryView('24h');
+    updateAlertChart();
+    loadAnalytics();
+
+    setInterval(loadAnalytics, 5000);
+    setInterval(updateDeviceStatus, 5000);
+    setInterval(updateUptime, 1000);
+}
+
+document.addEventListener('DOMContentLoaded', init);
+</script>
 </body>
 </html>
