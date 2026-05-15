@@ -59,11 +59,11 @@ $stmt->execute([
 // 2. Insérer dans sensor_data (pour l'historique )
 $stmt2 = $pdo->prepare("
     INSERT INTO sensor_data 
-    (user_id, temperature, humidity, signal_strength, bandwidth, ping) 
-    VALUES (?, ?, ?, ?, ?, ?)
+    (user_id, temperature, humidity, signal_strength, bandwidth) 
+    VALUES (?, ?, ?, ?, ?)
 ");
 $stmt2->execute([
-    $user_id, $temperature, $humidity, $signal_strength, $bandwidth, $ping
+    $user_id, $temperature, $humidity, $signal_strength, $bandwidth
 ]);
     
     // 3. ✅ GESTION INTELLIGENTE DES ALERTES (SEULEMENT SI CHANGEMENT)
