@@ -269,7 +269,7 @@ if (isLoggedIn()) {
         </div>
         <div id="forgotEmailError" class="error-message"></div>
       </div>
-      <button class="submit-btn" id="goToResetPage">Send Reset Link</button>
+      <button class="submit-btn" id="goToResetPage">Send Reset Code</button>
       <div style="text-align: center;">
         <a href="#" class="back-link" id="backToLoginFromForgot1">← Back to Login</a>
       </div>    
@@ -290,6 +290,18 @@ if (isLoggedIn()) {
         <span class="greeting">Create New</span>
         <span class="morning">Password</span>
       </div>
+     <div class="input-group">
+    <label>Verification Code</label>
+    <div class="input-wrapper" id="verificationCodeWrapper">
+        <i class="fas fa-shield-alt"></i>
+        <input
+            type="text"
+            id="verificationCodeInput"
+            placeholder="Enter 4-digit code"
+            maxlength="4">
+    </div>
+    <div id="verificationCodeError" class="error-message"></div>
+</div>
       <div class="info-message">
         <i class="fas fa-key"></i> Please enter your new password
       </div>
@@ -397,7 +409,8 @@ if (isLoggedIn()) {
       // Boutons
       const goToResetBtn = document.getElementById('goToResetPage');
       const resetPasswordBtn = document.getElementById('resetPasswordBtn');
-      const createAccountBtn = document.getElementById('createAccountBtn');      
+      const createAccountBtn = document.getElementById('createAccountBtn');
+      let generatedVerificationCode = "";
       // Fonctions de changement de page
       function showLogin() {
           loginPage.classList.remove('hidden');
@@ -427,6 +440,9 @@ if (isLoggedIn()) {
           document.getElementById('confirmPasswordError').innerHTML = '';
           document.getElementById('newPasswordWrapper').classList.remove('input-error');
           document.getElementById('confirmPasswordWrapper').classList.remove('input-error');
+          document.getElementById('verificationCodeInput').value = '';
+        document.getElementById('verificationCodeError').innerHTML = '';
+        document.getElementById('verificationCodeWrapper').classList.remove('input-error');
       }      
       function showCreate() {
           loginPage.classList.add('hidden');
@@ -484,11 +500,19 @@ if (isLoggedIn()) {
               .then(response => response.json())
               .then(data => {
                   if (data.success) {
-                      showReset();
-                      setTimeout(() => {
-                          alert(data.message);
-                      }, 100);
-                  } else {
+
+    // Générer code aléatoire 4 chiffres
+    generatedVerificationCode = Math.floor(1000 + Math.random() * 9000).toString();
+
+    showReset();
+
+    setTimeout(() => {
+
+        alert("Your verification code is : " + generatedVerificationCode);
+
+    }, 100);
+
+} else {
                       emailWrapper.classList.add('input-error');
                       emailError.innerHTML = '<i class="fas fa-exclamation-circle"></i> ' + data.message;
                   }
@@ -508,8 +532,38 @@ if (isLoggedIn()) {
               const newPasswordWrapper = document.getElementById('newPasswordWrapper');
               const confirmWrapper = document.getElementById('confirmPasswordWrapper');
               const newPasswordError = document.getElementById('newPasswordError');
-              const confirmError = document.getElementById('confirmPasswordError');             
-              let isValid = true;             
+              const confirmError = document.getElementById('confirmPasswordError');
+              const verificationCode = document.getElementById('verificationCodeInput').value.trim();
+            const verificationWrapper = document.getElementById('verificationCodeWrapper');
+            const verificationError = document.getElementById('verificationCodeError');
+              let isValid = true;
+              // Vérification code
+
+if (!verificationCode) {
+
+    verificationWrapper.classList.add('input-error');
+
+    verificationError.innerHTML =
+        '<i class="fas fa-exclamation-circle"></i> Verification code required';
+
+    isValid = false;
+
+} else if (verificationCode !== generatedVerificationCode) {
+
+    verificationWrapper.classList.add('input-error');
+
+    verificationError.innerHTML =
+        '<i class="fas fa-exclamation-circle"></i> Invalid verification code';
+
+    isValid = false;
+
+} else {
+
+    verificationWrapper.classList.remove('input-error');
+
+    verificationError.innerHTML = '';
+
+}
               if (!newPassword) {
                   newPasswordWrapper.classList.add('input-error');
                   newPasswordError.innerHTML = '<i class="fas fa-exclamation-circle"></i> Password required';
