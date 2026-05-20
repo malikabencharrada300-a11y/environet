@@ -290,6 +290,9 @@ if (isLoggedIn()) {
         <span class="greeting">Create New</span>
         <span class="morning">Password</span>
       </div>
+      <div class="info-message">
+        <i class="fas fa-key"></i> Please enter your new password
+      </div>
      <div class="input-group">
     <label>Verification Code</label>
     <div class="input-wrapper" id="verificationCodeWrapper">
@@ -302,9 +305,6 @@ if (isLoggedIn()) {
     </div>
     <div id="verificationCodeError" class="error-message"></div>
 </div>
-      <div class="info-message">
-        <i class="fas fa-key"></i> Please enter your new password
-      </div>
       <div class="input-group">
         <label>New Password</label>
         <div class="input-wrapper" id="newPasswordWrapper">
