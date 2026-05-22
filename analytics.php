@@ -14,7 +14,7 @@ $username = $_SESSION['user_name'] ?? 'User';
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Smart Analytics  - IoT Monitoring</title>
+    <title> Analytics  - IoT Monitoring</title>
 
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-zoom@2.0.1/dist/chartjs-plugin-zoom.min.js"></script>
@@ -146,8 +146,9 @@ $username = $_SESSION['user_name'] ?? 'User';
             </div>
         </div>
 
-        <!-- MAIN CARDS (3 columns) -->
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
+        <!-- MAIN CARDS (4 columns) -->
+        <!-- MAIN CARDS (4 columns) -->
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-6">
 
             <!-- DEVICE STATUS -->
             <div class="glass-card rounded-xl shadow-lg p-6">
@@ -170,6 +171,86 @@ $username = $_SESSION['user_name'] ?? 'User';
                     </div>
                 </div>
             </div>
+            <!-- DHT11 SENSOR STATUS -->
+<div class="glass-card rounded-xl shadow-lg p-6">
+    <div class="flex justify-between mb-4">
+        <h2 class="font-bold text-lg text-gray-800">
+            DHT11 Sensor
+        </h2>
+
+        <span id="dhtIcon"
+              class="text-3xl float-animation">
+            🌡️
+        </span>
+    </div>
+
+    <div class="space-y-4">
+
+        <!-- SENSOR STATUS -->
+        <div class="flex items-center space-x-3">
+
+            <div class="w-10 h-10 rounded-full bg-green-100 flex items-center justify-center">
+                <span>📡</span>
+            </div>
+
+            <div>
+                <span class="text-sm text-gray-500">
+                    Sensor State
+                </span>
+
+                <p>
+                    <span id="dhtStatus"
+                          class="font-bold text-lg status-online">
+                        Connected
+                    </span>
+                </p>
+            </div>
+        </div>
+
+        <!-- HUMIDITY -->
+        <div class="flex items-center space-x-3">
+
+            <div class="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center">
+                <span>💧</span>
+            </div>
+
+            <div>
+                <span class="text-sm text-gray-500">
+                    Humidity
+                </span>
+
+                <p>
+                    <span id="humidityValue"
+                          class="font-bold text-lg text-blue-600">
+                        --%
+                    </span>
+                </p>
+            </div>
+        </div>
+
+        <!-- LAST READING -->
+        <div class="flex items-center space-x-3">
+
+            <div class="w-10 h-10 rounded-full bg-purple-100 flex items-center justify-center">
+                <span>⏱️</span>
+            </div>
+
+            <div>
+                <span class="text-sm text-gray-500">
+                    Last Reading
+                </span>
+
+                <p>
+                    <span id="dhtLastReading"
+                          class="font-mono text-sm font-bold">
+                        --:--:--
+                    </span>
+                </p>
+            </div>
+        </div>
+
+    </div>
+</div>
 
             <!-- TEMPERATURE ANALYSIS -->
             <div class="glass-card rounded-xl shadow-lg p-6">
@@ -643,9 +724,51 @@ $username = $_SESSION['user_name'] ?? 'User';
                 state.lastUpdate = Date.now();
                 const temp = safeNum(j.data.temperature);
                 const signal = safeNum(j.data.signal_strength);
+                const humidity = safeNum(j.data.humidity);
                 
                 document.getElementById('lastSeen').textContent = new Date().toLocaleTimeString('en-US', { hour:'2-digit', minute:'2-digit', second:'2-digit' });
                 analyzeTemp(temp); analyzeSignal(signal); detectAnomaly(temp, signal);
+                // ============================================
+// DHT11 SENSOR STATUS
+// ============================================
+
+// HUMIDITY
+document.getElementById('humidityValue').textContent =
+    humidity.toFixed(1) + '%';
+
+// LAST READING
+document.getElementById('dhtLastReading').textContent =
+    new Date().toLocaleTimeString('en-US', {
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit'
+    });
+
+// SENSOR STATUS
+const dhtStatus =
+    document.getElementById('dhtStatus');
+
+if ((Date.now() - state.lastUpdate)
+    < CONFIG.OFFLINE_THRESHOLD) {
+
+    dhtStatus.textContent = 'Connected';
+
+    dhtStatus.className =
+        'font-bold text-lg status-online';
+
+    document.getElementById('dhtIcon')
+        .textContent = '🟢';
+
+} else {
+
+    dhtStatus.textContent = 'Disconnected';
+
+    dhtStatus.className =
+        'font-bold text-lg status-offline';
+
+    document.getElementById('dhtIcon')
+        .textContent = '🔴';
+}
                 
                 document.getElementById('insightsContainer').innerHTML = `<p><strong>Temp:</strong> ${temp.toFixed(1)}°C ${temp>CONFIG.TEMP_WARNING?'⚠️':'✅'}</p><p><strong>Signal:</strong> ${signal}% ${signal<CONFIG.SIGNAL_WARNING?'⚠️':'✅'}</p>`;
                 document.getElementById('predictionsContainer').innerHTML = `<p>${temp>27?'⚠️ Temperature rising trend':'✅ Temperature stable'}</p><p>${signal<40?'⚠️ Signal degradation possible':'✅ Signal stable'}</p>`;
@@ -682,7 +805,7 @@ doc.rect(0, 0, W, H, 'F');
 
 // logo image
 const logo = new Image();
-logo.src = 'logo.png'; // حط logo.png في نفس dossier متاع analytics.php
+logo.src = 'logo.png'; 
 
 await new Promise((resolve) => {
     logo.onload = resolve;
