@@ -744,6 +744,19 @@ async function updateAlertChartData() {
             e
         );
     }
+    if (!rows.length) {
+
+    state.charts.alert.data.labels =
+        ['No Data'];
+
+    state.charts.alert.data.datasets[0].data = [0];
+    state.charts.alert.data.datasets[1].data = [0];
+    state.charts.alert.data.datasets[2].data = [0];
+
+    state.charts.alert.update();
+
+    return;
+}
 }
 
 // ============================================
@@ -1161,6 +1174,19 @@ function analyzeSignal(signal) {
 // ============================================
 
 function setOfflineUI() {
+document.getElementById('deviceStatus')
+    .textContent = 'Offline';
+
+document.getElementById('deviceStatus')
+    .className =
+    'font-bold text-lg status-offline';
+
+document.getElementById('dhtStatus')
+    .textContent = 'Disconnected';
+
+document.getElementById('dhtStatus')
+    .className =
+    'font-bold text-lg status-offline';
 
     // DEVICE STATUS
 
@@ -1333,6 +1359,7 @@ document.getElementById('uptime')
         analyzeSignal(signal);
 
         detectAnomaly(temp, signal);
+        updateAI(temp, signal);
 
         state.temperatureHistory.push(temp);
 
@@ -1361,6 +1388,99 @@ document.getElementById('uptime')
 
         setOfflineUI();
     }
+    document.getElementById('lastSeen')
+    .textContent =
+    new Date(createdAt)
+    .toLocaleTimeString();
+    document.getElementById('dhtLastReading')
+    .textContent =
+    new Date(createdAt)
+    .toLocaleTimeString();
+}
+function updateUptime() {
+
+    const diff =
+        Date.now() - state.lastUpdate;
+
+    const sec =
+        Math.floor(diff / 1000);
+
+    const min =
+        Math.floor(sec / 60);
+
+    document.getElementById('uptime')
+        .textContent =
+        `${min} min`;
+}
+function updateAI(temp, signal) {
+
+    let score = 100;
+
+    if (temp >= 28) score -= 40;
+    else if (temp >= 24) score -= 20;
+
+    if (signal < 30) score -= 40;
+    else if (signal < 50) score -= 20;
+
+    score = Math.max(0, score);
+
+    document.getElementById('aiScore')
+        .textContent = score + '%';
+
+    let health = 'Excellent';
+    let color = 'text-green-600';
+
+    if (score < 50) {
+
+        health = 'Critical';
+        color = 'text-red-600';
+
+    } else if (score < 75) {
+
+        health = 'Warning';
+        color = 'text-orange-600';
+    }
+
+    const el =
+        document.getElementById('aiHealth');
+
+    el.textContent = health;
+
+    el.className =
+        `text-2xl font-bold ${color}`;
+
+    // INSIGHTS
+
+    document.getElementById(
+        'insightsContainer'
+    ).innerHTML = `
+        <p>• Temperature: ${temp.toFixed(1)}°C</p>
+        <p>• Signal: ${signal}%</p>
+    `;
+
+    // PREDICTIONS
+
+    document.getElementById(
+        'predictionsContainer'
+    ).innerHTML = `
+        <p>• Stable monitoring expected</p>
+    `;
+
+    // RECOMMENDATIONS
+
+    let rec = 'System stable';
+
+    if (temp >= 24)
+        rec = 'Reduce environment temperature';
+
+    if (signal < 50)
+        rec = 'Improve WiFi signal';
+
+    document.getElementById(
+        'recommendationsContainer'
+    ).innerHTML = `
+        <p>• ${rec}</p>
+    `;
 }
 
 // ============================================
@@ -1694,6 +1814,7 @@ async function generatePDFReport() {
 // ============================================
 
 function init() {
+    setInterval(updateUptime,1000);
 
     initCharts();
 
