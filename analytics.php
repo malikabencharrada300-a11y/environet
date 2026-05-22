@@ -146,8 +146,9 @@ body{
 // ============================================
 
 const CONFIG = {
-    TEMP_WARNING: 24,
-    TEMP_CRITICAL: 28,
+    TEMP_WARNING: 28,    // Increased from 24°C
+    TEMP_CRITICAL: 35,   // Increased from 28°C
+    TEMP_MIN: 10,        // Minimum normal temperature
     SIGNAL_WARNING: 60,
     SIGNAL_CRITICAL: 30,
     SENSOR_TIMEOUT: 30000,
@@ -215,21 +216,40 @@ function initCharts() {
             plugins: {
                 legend: {
                     position: 'top'
+                },
+                tooltip: {
+                    callbacks: {
+                        label: function(context) {
+                            let label = context.dataset.label || '';
+                            let value = context.raw;
+                            if (context.dataset.label === 'Temperature °C') {
+                                return label + ': ' + value.toFixed(1) + '°C';
+                            }
+                            if (context.dataset.label === 'Humidity %') {
+                                return label + ': ' + value.toFixed(1) + '%';
+                            }
+                            return label + ': ' + value.toFixed(0) + '%';
+                        }
+                    }
                 }
             },
             scales: {
                 y: {
                     title: {
                         display: true,
-                        text: 'Temperature/Humidity'
-                    }
+                        text: 'Temperature (°C) / Humidity (%)'
+                    },
+                    min: 0,
+                    max: 100
                 },
                 y1: {
                     position: 'right',
                     title: {
                         display: true,
-                        text: 'Signal %'
-                    }
+                        text: 'Signal Strength (%)'
+                    },
+                    min: 0,
+                    max: 100
                 }
             }
         }
@@ -278,17 +298,30 @@ function initCharts() {
                 y: {
                     title: {
                         display: true,
-                        text: 'Alert Level (0=Normal, 1=Warning, 2=Critical)'
+                        text: 'Alert Level'
                     },
                     min: 0,
                     max: 2.5,
                     ticks: {
                         stepSize: 0.5,
                         callback: function(value) {
-                            if (value === 0) return 'Normal';
-                            if (value === 1) return 'Warning';
-                            if (value === 2) return 'Critical';
+                            if (value === 0) return '✓ Normal';
+                            if (value === 1) return '⚠ Warning';
+                            if (value === 2) return '🔴 Critical';
                             return '';
+                        }
+                    }
+                }
+            },
+            plugins: {
+                tooltip: {
+                    callbacks: {
+                        label: function(context) {
+                            const value = context.raw;
+                            if (value === 0) return context.dataset.label + ': Normal';
+                            if (value === 1) return context.dataset.label + ': Warning';
+                            if (value === 2) return context.dataset.label + ': Critical';
+                            return context.dataset.label + ': ' + value;
                         }
                     }
                 }
@@ -312,6 +345,20 @@ function setOfflineUI() {
     document.getElementById('anomalyText').innerHTML = 'Offline';
     document.getElementById('aiHealth').innerHTML = 'Offline';
     document.getElementById('aiScore').innerHTML = '--';
+    document.getElementById('lastUpdate').innerHTML = '--:--:--';
+}
+
+// ============================================
+// VALIDATE DATA
+// ============================================
+
+function isValidData(temp, humidity, signal) {
+    // Check for realistic values
+    if (isNaN(temp) || isNaN(humidity) || isNaN(signal)) return false;
+    if (temp < -20 || temp > 60) return false; // Realistic temperature range
+    if (humidity < 0 || humidity > 100) return false;
+    if (signal < 0 || signal > 100) return false;
+    return true;
 }
 
 // ============================================
@@ -333,6 +380,18 @@ async function loadAnalytics() {
         const createdAt = new Date(data.created_at).getTime();
         const diff = now - createdAt;
         
+        // Fix: Properly format the last update time
+        const updateTime = new Date(data.created_at);
+        if (!isNaN(updateTime.getTime())) {
+            document.getElementById('lastUpdate').innerHTML = updateTime.toLocaleTimeString('en-US', {
+                hour: '2-digit',
+                minute: '2-digit',
+                second: '2-digit'
+            });
+        } else {
+            document.getElementById('lastUpdate').innerHTML = new Date().toLocaleTimeString();
+        }
+        
         // SENSOR OFFLINE CHECK
         if (diff > CONFIG.SENSOR_TIMEOUT) {
             setOfflineUI();
@@ -352,87 +411,97 @@ async function loadAnalytics() {
         const humidity = parseFloat(data.humidity);
         const signal = parseFloat(data.signal_strength);
         
+        // Validate data
+        if (!isValidData(temp, humidity, signal)) {
+            console.warn('Invalid data received:', {temp, humidity, signal});
+            return;
+        }
+        
         document.getElementById('currentTemp').innerHTML = temp.toFixed(1) + '°C';
         document.getElementById('currentHumidity').innerHTML = humidity.toFixed(1) + '%';
         document.getElementById('currentSignal').innerHTML = signal.toFixed(0) + '%';
-        document.getElementById('lastUpdate').innerHTML = new Date(data.created_at).toLocaleTimeString();
         
         // ALERT DETECTION
         let tempAlert = 0;
         let signalAlert = 0;
         let connectionAlert = 0;
         
-        // TEMP ALERT
+        // TEMP ALERT - Adjusted thresholds
         if (temp >= CONFIG.TEMP_CRITICAL) {
             tempAlert = 2;
-            document.getElementById('tempStatus').innerHTML = 'Critical';
+            document.getElementById('tempStatus').innerHTML = 'Critical 🔴';
             document.getElementById('tempStatus').className = 'mt-2 font-bold text-red-600';
         } else if (temp >= CONFIG.TEMP_WARNING) {
             tempAlert = 1;
-            document.getElementById('tempStatus').innerHTML = 'Warning';
+            document.getElementById('tempStatus').innerHTML = 'Warning ⚠️';
             document.getElementById('tempStatus').className = 'mt-2 font-bold text-orange-600';
         } else {
-            document.getElementById('tempStatus').innerHTML = 'Normal';
+            document.getElementById('tempStatus').innerHTML = 'Normal ✓';
             document.getElementById('tempStatus').className = 'mt-2 font-bold text-green-600';
         }
         
         // SIGNAL ALERT
         if (signal < CONFIG.SIGNAL_CRITICAL) {
             signalAlert = 2;
-            document.getElementById('signalStatus').innerHTML = 'Critical';
+            document.getElementById('signalStatus').innerHTML = 'Critical 🔴';
             document.getElementById('signalStatus').className = 'mt-2 font-bold text-red-600';
         } else if (signal < CONFIG.SIGNAL_WARNING) {
             signalAlert = 1;
-            document.getElementById('signalStatus').innerHTML = 'Weak';
+            document.getElementById('signalStatus').innerHTML = 'Weak ⚠️';
             document.getElementById('signalStatus').className = 'mt-2 font-bold text-orange-600';
         } else {
-            document.getElementById('signalStatus').innerHTML = 'Excellent';
+            document.getElementById('signalStatus').innerHTML = 'Excellent ✓';
             document.getElementById('signalStatus').className = 'mt-2 font-bold text-green-600';
         }
         
         // AI SCORE
         let aiScore = 100;
-        aiScore -= tempAlert * 25;
-        aiScore -= signalAlert * 25;
-        aiScore = Math.max(0, aiScore);
+        aiScore -= tempAlert * 20;  // Reduced penalty
+        aiScore -= signalAlert * 15;
+        aiScore = Math.max(0, Math.min(100, aiScore));
         
         document.getElementById('aiScore').innerHTML = aiScore + '%';
         document.getElementById('dataCount').innerHTML = tempHistory.length;
         
         if (aiScore >= 80) {
-            document.getElementById('aiHealth').innerHTML = 'Excellent';
+            document.getElementById('aiHealth').innerHTML = 'Excellent ✓';
             document.getElementById('aiHealth').className = 'text-3xl font-bold text-green-600';
         } else if (aiScore >= 50) {
-            document.getElementById('aiHealth').innerHTML = 'Warning';
+            document.getElementById('aiHealth').innerHTML = 'Warning ⚠️';
             document.getElementById('aiHealth').className = 'text-3xl font-bold text-orange-600';
         } else {
-            document.getElementById('aiHealth').innerHTML = 'Critical';
+            document.getElementById('aiHealth').innerHTML = 'Critical 🔴';
             document.getElementById('aiHealth').className = 'text-3xl font-bold text-red-600';
         }
         
         // ANOMALY
         if (tempAlert === 2 || signalAlert === 2) {
-            document.getElementById('anomalyText').innerHTML = 'Critical';
+            document.getElementById('anomalyText').innerHTML = 'Critical 🔴';
             document.getElementById('anomalyText').className = 'text-3xl font-bold text-red-600';
         } else if (tempAlert === 1 || signalAlert === 1) {
-            document.getElementById('anomalyText').innerHTML = 'Warning';
+            document.getElementById('anomalyText').innerHTML = 'Warning ⚠️';
             document.getElementById('anomalyText').className = 'text-3xl font-bold text-orange-600';
         } else {
-            document.getElementById('anomalyText').innerHTML = 'Normal';
+            document.getElementById('anomalyText').innerHTML = 'Normal ✓';
             document.getElementById('anomalyText').className = 'text-3xl font-bold text-green-600';
         }
         
-        // HISTORY
+        // HISTORY - Only add if data changed significantly (optional)
+        const lastTemp = tempHistory[tempHistory.length - 1];
+        const lastSignal = signalHistory[signalHistory.length - 1];
+        
+        // Add to history (you can add throttling here if needed)
         tempHistory.push(temp);
         humidityHistory.push(humidity);
         signalHistory.push(signal);
-        labelsHistory.push(new Date().toLocaleTimeString());
+        labelsHistory.push(updateTime.toLocaleTimeString());
         tempAlertHistory.push(tempAlert);
         signalAlertHistory.push(signalAlert);
         connectionAlertHistory.push(connectionAlert);
         
         // LIMIT
-        if (tempHistory.length > CONFIG.MAX_HISTORY) {
+        const maxHistory = CONFIG.MAX_HISTORY;
+        while (tempHistory.length > maxHistory) {
             tempHistory.shift();
             humidityHistory.shift();
             signalHistory.shift();
@@ -444,48 +513,82 @@ async function loadAnalytics() {
         
         updateCharts();
         
-        // COUNTERS
-        document.getElementById('totalTempAlerts').innerHTML = tempAlertHistory.reduce((a,b)=>a+b, 0);
-        document.getElementById('totalSignalAlerts').innerHTML = signalAlertHistory.reduce((a,b)=>a+b, 0);
-        document.getElementById('totalConnAlerts').innerHTML = connectionAlertHistory.reduce((a,b)=>a+b, 0);
+        // COUNTERS - Count only warnings and criticals
+        const tempAlertSum = tempAlertHistory.filter(v => v > 0).length;
+        const signalAlertSum = signalAlertHistory.filter(v => v > 0).length;
+        const connAlertSum = connectionAlertHistory.filter(v => v > 0).length;
+        
+        document.getElementById('totalTempAlerts').innerHTML = tempAlertSum;
+        document.getElementById('totalSignalAlerts').innerHTML = signalAlertSum;
+        document.getElementById('totalConnAlerts').innerHTML = connAlertSum;
         
     } catch(err) {
-        console.error(err);
+        console.error('Error loading analytics:', err);
         setOfflineUI();
     }
 }
 
 function updateCharts() {
-    if (historyChart) {
-        historyChart.data.labels = labelsHistory;
-        historyChart.data.datasets[0].data = tempHistory;
-        historyChart.data.datasets[1].data = humidityHistory;
-        historyChart.data.datasets[2].data = signalHistory;
-        historyChart.update();
+    if (historyChart && historyChart.data) {
+        historyChart.data.labels = [...labelsHistory];
+        historyChart.data.datasets[0].data = [...tempHistory];
+        historyChart.data.datasets[1].data = [...humidityHistory];
+        historyChart.data.datasets[2].data = [...signalHistory];
+        historyChart.update('none'); // Use 'none' for better performance
     }
     
-    if (alertChart) {
-        alertChart.data.labels = labelsHistory;
-        alertChart.data.datasets[0].data = tempAlertHistory;
-        alertChart.data.datasets[1].data = signalAlertHistory;
-        alertChart.data.datasets[2].data = connectionAlertHistory;
-        alertChart.update();
+    if (alertChart && alertChart.data) {
+        alertChart.data.labels = [...labelsHistory];
+        alertChart.data.datasets[0].data = [...tempAlertHistory];
+        alertChart.data.datasets[1].data = [...signalAlertHistory];
+        alertChart.data.datasets[2].data = [...connectionAlertHistory];
+        alertChart.update('none');
     }
 }
 
 function updateAlertChart() {
-    if (alertChart) {
-        alertChart.data.labels = labelsHistory;
-        alertChart.data.datasets[0].data = tempAlertHistory;
-        alertChart.data.datasets[1].data = signalAlertHistory;
-        alertChart.data.datasets[2].data = connectionAlertHistory;
-        alertChart.update();
+    if (alertChart && alertChart.data) {
+        alertChart.data.labels = [...labelsHistory];
+        alertChart.data.datasets[0].data = [...tempAlertHistory];
+        alertChart.data.datasets[1].data = [...signalAlertHistory];
+        alertChart.data.datasets[2].data = [...connectionAlertHistory];
+        alertChart.update('none');
     }
 }
 
-function generatePDF() {
-    alert('PDF generation will be implemented here');
-    // Implement PDF generation using jspdf
+// ============================================
+// PDF GENERATION
+// ============================================
+
+async function generatePDF() {
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF();
+    
+    // Add title
+    doc.setFontSize(20);
+    doc.text('ENVIRONET Analytics Report', 20, 20);
+    
+    doc.setFontSize(12);
+    doc.text(`Generated: ${new Date().toLocaleString()}`, 20, 35);
+    
+    // Add current readings
+    doc.setFontSize(14);
+    doc.text('Current Readings:', 20, 55);
+    doc.setFontSize(12);
+    doc.text(`Temperature: ${document.getElementById('currentTemp').innerText}`, 30, 70);
+    doc.text(`Humidity: ${document.getElementById('currentHumidity').innerText}`, 30, 80);
+    doc.text(`Signal Strength: ${document.getElementById('currentSignal').innerText}`, 30, 90);
+    doc.text(`AI Score: ${document.getElementById('aiScore').innerText}`, 30, 100);
+    doc.text(`System Health: ${document.getElementById('aiHealth').innerText}`, 30, 110);
+    
+    // Add alert summary
+    doc.text('Alert Summary:', 20, 130);
+    doc.text(`Temperature Alerts: ${document.getElementById('totalTempAlerts').innerText}`, 30, 145);
+    doc.text(`Signal Alerts: ${document.getElementById('totalSignalAlerts').innerText}`, 30, 155);
+    doc.text(`Connection Alerts: ${document.getElementById('totalConnAlerts').innerText}`, 30, 165);
+    
+    // Save PDF
+    doc.save('environet-report.pdf');
 }
 
 // ============================================
@@ -495,6 +598,7 @@ function generatePDF() {
 document.addEventListener('DOMContentLoaded', () => {
     initCharts();
     loadAnalytics();
+    // Update every 5 seconds
     setInterval(() => {
         loadAnalytics();
     }, 5000);
