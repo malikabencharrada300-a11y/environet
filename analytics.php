@@ -38,7 +38,7 @@ body {
     box-shadow: 0 6px 20px rgba(0,0,0,0.12);
 }
 .chart-box {
-    height: 450px;
+    height: 400px;
     position: relative;
 }
 .btn-primary {
@@ -162,51 +162,64 @@ body {
         </div>
     </div>
 
-    <!-- CHARTS SECTION -->
-    <div class="grid lg:grid-cols-2 gap-6">
+    <!-- CHARTS SECTION - NOW WITH 3 CHARTS -->
+    <div class="grid lg:grid-cols-3 gap-6">
         <!-- Temperature Chart -->
         <div class="card">
             <div class="flex justify-between items-center mb-4">
                 <h2 class="font-bold text-xl">🌡 Temperature History</h2>
-                <div class="flex gap-2">
-                    <button onclick="loadChartData('hour')" id="filterHour" class="filter-btn px-3 py-1 text-sm rounded-lg bg-gray-200 hover:bg-blue-500 hover:text-white transition">Hour</button>
-                    <button onclick="loadChartData('day')" id="filterDay" class="filter-btn px-3 py-1 text-sm rounded-lg bg-blue-600 text-white active transition">Day</button>
-                    <button onclick="loadChartData('week')" id="filterWeek" class="filter-btn px-3 py-1 text-sm rounded-lg bg-gray-200 hover:bg-blue-500 hover:text-white transition">Week</button>
-                    <button onclick="loadChartData('month')" id="filterMonth" class="filter-btn px-3 py-1 text-sm rounded-lg bg-gray-200 hover:bg-blue-500 hover:text-white transition">Month</button>
+                <div class="flex gap-1">
+                    <button onclick="loadChartData('hour')" id="filterHour" class="filter-btn px-2 py-1 text-xs rounded-lg bg-gray-200 hover:bg-blue-500 hover:text-white transition">Hour</button>
+                    <button onclick="loadChartData('day')" id="filterDay" class="filter-btn px-2 py-1 text-xs rounded-lg bg-blue-600 text-white active transition">Day</button>
+                    <button onclick="loadChartData('week')" id="filterWeek" class="filter-btn px-2 py-1 text-xs rounded-lg bg-gray-200 hover:bg-blue-500 hover:text-white transition">Week</button>
                 </div>
             </div>
             <div class="chart-box">
                 <canvas id="tempChart"></canvas>
             </div>
-            <p class="text-xs text-gray-400 text-center mt-2">Real data from database • Updates every 5 seconds</p>
         </div>
 
-        <!-- Signal Chart -->
+        <!-- Signal & Humidity Chart -->
         <div class="card">
             <div class="flex justify-between items-center mb-4">
-                <h2 class="font-bold text-xl">📶 Signal & Humidity History</h2>
-                <div class="flex gap-2">
-                    <button onclick="loadChartData('hour')" id="filterSignalHour" class="filter-btn px-3 py-1 text-sm rounded-lg bg-gray-200 hover:bg-blue-500 hover:text-white transition">Hour</button>
-                    <button onclick="loadChartData('day')" id="filterSignalDay" class="filter-btn px-3 py-1 text-sm rounded-lg bg-blue-600 text-white active transition">Day</button>
-                    <button onclick="loadChartData('week')" id="filterSignalWeek" class="filter-btn px-3 py-1 text-sm rounded-lg bg-gray-200 hover:bg-blue-500 hover:text-white transition">Week</button>
-                    <button onclick="loadChartData('month')" id="filterSignalMonth" class="filter-btn px-3 py-1 text-sm rounded-lg bg-gray-200 hover:bg-blue-500 hover:text-white transition">Month</button>
+                <h2 class="font-bold text-xl">📶 Signal & Humidity</h2>
+                <div class="flex gap-1">
+                    <button onclick="loadChartData('hour')" id="filterSignalHour" class="filter-btn px-2 py-1 text-xs rounded-lg bg-gray-200 hover:bg-blue-500 hover:text-white transition">Hour</button>
+                    <button onclick="loadChartData('day')" id="filterSignalDay" class="filter-btn px-2 py-1 text-xs rounded-lg bg-blue-600 text-white active transition">Day</button>
+                    <button onclick="loadChartData('week')" id="filterSignalWeek" class="filter-btn px-2 py-1 text-xs rounded-lg bg-gray-200 hover:bg-blue-500 hover:text-white transition">Week</button>
                 </div>
             </div>
             <div class="chart-box">
                 <canvas id="signalChart"></canvas>
             </div>
-            <p class="text-xs text-gray-400 text-center mt-2">Real data from database • Updates every 5 seconds</p>
+        </div>
+
+        <!-- NEW: Alert Analysis Chart -->
+        <div class="card">
+            <div class="flex justify-between items-center mb-4">
+                <h2 class="font-bold text-xl">⚠️ Alert Analysis</h2>
+                <div class="flex gap-1">
+                    <button onclick="loadAlertData('hour')" id="filterAlertHour" class="filter-btn px-2 py-1 text-xs rounded-lg bg-gray-200 hover:bg-blue-500 hover:text-white transition">Hour</button>
+                    <button onclick="loadAlertData('day')" id="filterAlertDay" class="filter-btn px-2 py-1 text-xs rounded-lg bg-blue-600 text-white active transition">Day</button>
+                    <button onclick="loadAlertData('week')" id="filterAlertWeek" class="filter-btn px-2 py-1 text-xs rounded-lg bg-gray-200 hover:bg-blue-500 hover:text-white transition">Week</button>
+                </div>
+            </div>
+            <div class="chart-box">
+                <canvas id="alertChart"></canvas>
+            </div>
+            <p class="text-xs text-gray-400 text-center mt-2">Alert levels: 0=Normal, 1=Warning, 2=Critical</p>
         </div>
     </div>
 </div>
 
 <script>
 // ============================================
-// REAL TIME SENSOR DASHBOARD
+// REAL TIME SENSOR DASHBOARD WITH ALERT ANALYSIS
 // ============================================
 
 let tempChart = null;
 let signalChart = null;
+let alertChart = null;
 let currentPeriod = 'day';
 let updateInterval = null;
 
@@ -216,7 +229,15 @@ const CONFIG = {
     TEMP_CRITICAL: 35,
     SIGNAL_WARNING: 60,
     SIGNAL_CRITICAL: 30,
-    UPDATE_INTERVAL: 5000 // 5 seconds
+    UPDATE_INTERVAL: 5000
+};
+
+// Store alert history
+let alertHistory = {
+    timestamps: [],
+    tempAlerts: [],
+    signalAlerts: [],
+    connectionAlerts: []
 };
 
 // ============================================
@@ -249,29 +270,12 @@ function initCharts() {
             responsive: true,
             maintainAspectRatio: false,
             plugins: {
-                legend: {
-                    position: 'top',
-                    labels: { usePointStyle: true, boxWidth: 10 }
-                },
-                tooltip: {
-                    callbacks: {
-                        label: function(context) {
-                            return 'Temperature: ' + context.raw.toFixed(1) + '°C';
-                        }
-                    }
-                }
+                legend: { position: 'top', labels: { usePointStyle: true, boxWidth: 10 } },
+                tooltip: { callbacks: { label: function(context) { return 'Temperature: ' + context.raw.toFixed(1) + '°C'; } } }
             },
             scales: {
-                y: {
-                    title: { display: true, text: 'Temperature (°C)' },
-                    min: 0,
-                    max: 50,
-                    grid: { color: 'rgba(0,0,0,0.05)' }
-                },
-                x: {
-                    title: { display: true, text: 'Timestamp' },
-                    ticks: { maxRotation: 45, minRotation: 45 }
-                }
+                y: { title: { display: true, text: 'Temperature (°C)' }, min: 0, max: 50 },
+                x: { title: { display: true, text: 'Timestamp' }, ticks: { maxRotation: 45, minRotation: 45 } }
             }
         }
     });
@@ -283,192 +287,284 @@ function initCharts() {
         data: {
             labels: [],
             datasets: [
-                {
-                    label: 'Humidity (%)',
-                    data: [],
-                    borderColor: '#06b6d4',
-                    backgroundColor: 'rgba(6,182,212,0.1)',
-                    borderWidth: 2,
-                    fill: true,
-                    tension: 0.4,
-                    pointRadius: 3,
-                    pointHoverRadius: 6,
-                    yAxisID: 'y'
-                },
-                {
-                    label: 'Signal Strength (%)',
-                    data: [],
-                    borderColor: '#2563eb',
-                    backgroundColor: 'rgba(37,99,235,0.1)',
-                    borderWidth: 2,
-                    fill: true,
-                    tension: 0.4,
-                    pointRadius: 3,
-                    pointHoverRadius: 6,
-                    yAxisID: 'y1'
-                }
+                { label: 'Humidity (%)', data: [], borderColor: '#06b6d4', backgroundColor: 'rgba(6,182,212,0.1)', borderWidth: 2, fill: true, tension: 0.4, pointRadius: 3, yAxisID: 'y' },
+                { label: 'Signal Strength (%)', data: [], borderColor: '#2563eb', backgroundColor: 'rgba(37,99,235,0.1)', borderWidth: 2, fill: true, tension: 0.4, pointRadius: 3, yAxisID: 'y1' }
             ]
         },
         options: {
             responsive: true,
             maintainAspectRatio: false,
             plugins: {
-                legend: {
-                    position: 'top',
-                    labels: { usePointStyle: true, boxWidth: 10 }
-                },
+                legend: { position: 'top', labels: { usePointStyle: true, boxWidth: 10 } },
+                tooltip: { callbacks: { label: function(context) { return context.dataset.label + ': ' + context.raw.toFixed(1) + (context.dataset.label.includes('Humidity') ? '%' : '%'); } } }
+            },
+            scales: {
+                y: { title: { display: true, text: 'Humidity (%)' }, min: 0, max: 100 },
+                y1: { position: 'right', title: { display: true, text: 'Signal Strength (%)' }, min: 0, max: 100, grid: { drawOnChartArea: false } },
+                x: { title: { display: true, text: 'Timestamp' }, ticks: { maxRotation: 45, minRotation: 45 } }
+            }
+        }
+    });
+
+    // NEW: Alert Analysis Chart
+    const alertCtx = document.getElementById('alertChart').getContext('2d');
+    alertChart = new Chart(alertCtx, {
+        type: 'line',
+        data: {
+            labels: [],
+            datasets: [
+                { label: 'Temperature Alerts', data: [], borderColor: '#ef4444', backgroundColor: 'rgba(239,68,68,0.1)', borderWidth: 2, fill: true, tension: 0.4, stepped: true, pointRadius: 4, pointHoverRadius: 6 },
+                { label: 'Signal Alerts', data: [], borderColor: '#f59e0b', backgroundColor: 'rgba(245,158,11,0.1)', borderWidth: 2, fill: true, tension: 0.4, stepped: true, pointRadius: 4, pointHoverRadius: 6 },
+                { label: 'Connection Alerts', data: [], borderColor: '#8b5cf6', backgroundColor: 'rgba(139,92,246,0.1)', borderWidth: 2, fill: true, tension: 0.4, stepped: true, pointRadius: 4, pointHoverRadius: 6 }
+            ]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: { position: 'top', labels: { usePointStyle: true, boxWidth: 10 } },
                 tooltip: {
                     callbacks: {
                         label: function(context) {
-                            if (context.dataset.label === 'Humidity (%)') {
-                                return 'Humidity: ' + context.raw.toFixed(1) + '%';
-                            }
-                            return 'Signal: ' + context.raw.toFixed(0) + '%';
+                            const value = context.raw;
+                            let status = '';
+                            if (value === 0) status = '✓ Normal';
+                            else if (value === 1) status = '⚠ Warning';
+                            else if (value === 2) status = '🔴 Critical';
+                            return context.dataset.label + ': ' + status;
                         }
                     }
                 }
             },
             scales: {
                 y: {
-                    title: { display: true, text: 'Humidity (%)' },
-                    min: 0,
-                    max: 100,
-                    grid: { color: 'rgba(0,0,0,0.05)' }
+                    title: { display: true, text: 'Alert Level' },
+                    min: -0.5,
+                    max: 2.5,
+                    ticks: {
+                        stepSize: 0.5,
+                        callback: function(value) {
+                            if (value === 0) return 'Normal';
+                            if (value === 1) return 'Warning';
+                            if (value === 2) return 'Critical';
+                            return '';
+                        }
+                    }
                 },
-                y1: {
-                    position: 'right',
-                    title: { display: true, text: 'Signal Strength (%)' },
-                    min: 0,
-                    max: 100,
-                    grid: { drawOnChartArea: false }
-                },
-                x: {
-                    title: { display: true, text: 'Timestamp' },
-                    ticks: { maxRotation: 45, minRotation: 45 }
-                }
+                x: { title: { display: true, text: 'Timestamp' }, ticks: { maxRotation: 45, minRotation: 45 } }
             }
         }
     });
 }
 
 // ============================================
-// LOAD CHART DATA FROM YOUR EXISTING API
+// LOAD ALERT DATA FOR THE CHART
+// ============================================
+
+async function loadAlertData(period) {
+    currentPeriod = period;
+    
+    // Update active buttons for alert chart
+    document.querySelectorAll('[id^="filterAlert"]').forEach(btn => {
+        btn.classList.remove('active', 'bg-blue-600', 'text-white');
+        btn.classList.add('bg-gray-200');
+    });
+    
+    const alertBtnMap = {
+        'hour': 'filterAlertHour',
+        'day': 'filterAlertDay',
+        'week': 'filterAlertWeek'
+    };
+    const activeBtn = document.getElementById(alertBtnMap[period]);
+    if (activeBtn) {
+        activeBtn.classList.remove('bg-gray-200');
+        activeBtn.classList.add('active', 'bg-blue-600', 'text-white');
+    }
+    
+    // Also update other chart buttons to match
+    document.querySelectorAll('[id^="filter"][id$="Hour"],[id^="filter"][id$="Day"],[id^="filter"][id$="Week"]').forEach(btn => {
+        if (!btn.id.includes('Alert')) {
+            btn.classList.remove('active', 'bg-blue-600', 'text-white');
+            btn.classList.add('bg-gray-200');
+            if ((period === 'hour' && btn.id.includes('Hour')) ||
+                (period === 'day' && btn.id.includes('Day')) ||
+                (period === 'week' && btn.id.includes('Week'))) {
+                if (!btn.id.includes('Alert')) {
+                    btn.classList.remove('bg-gray-200');
+                    btn.classList.add('active', 'bg-blue-600', 'text-white');
+                }
+            }
+        }
+    });
+    
+    let limit = 24;
+    if (period === 'hour') limit = 60;
+    else if (period === 'day') limit = 24;
+    else if (period === 'week') limit = 168;
+    
+    try {
+        // Try to fetch real alert data from your API
+        const response = await fetch(`get_alerts.php?period=${period}&limit=${limit}&user_id=<?= $user_id ?>`);
+        const result = await response.json();
+        
+        if (result.success && result.data) {
+            if (alertChart) {
+                alertChart.data.labels = result.data.timestamps || [];
+                alertChart.data.datasets[0].data = result.data.tempAlerts || [];
+                alertChart.data.datasets[1].data = result.data.signalAlerts || [];
+                alertChart.data.datasets[2].data = result.data.connectionAlerts || [];
+                alertChart.update();
+            }
+        } else {
+            // Generate demo alert data if no real data
+            generateDemoAlertData(period, limit);
+        }
+    } catch(error) {
+        console.log('Using demo alert data');
+        generateDemoAlertData(period, limit);
+    }
+}
+
+// Generate demo alert data for visualization
+function generateDemoAlertData(period, limit) {
+    const now = new Date();
+    const labels = [];
+    const tempAlerts = [];
+    const signalAlerts = [];
+    const connectionAlerts = [];
+    
+    for (let i = limit; i >= 0; i--) {
+        let date = new Date(now);
+        if (period === 'hour') date.setMinutes(now.getMinutes() - i);
+        else if (period === 'day') date.setHours(now.getHours() - i);
+        else date.setHours(now.getHours() - i);
+        
+        labels.push(date.toLocaleTimeString());
+        
+        // Generate realistic alert patterns
+        let tempAlert = 0;
+        let signalAlert = 0;
+        let connAlert = 0;
+        
+        // Random but realistic alert generation
+        const rand = Math.random();
+        const hour = date.getHours();
+        
+        // Temperature alerts more likely during hot hours
+        if (hour > 12 && hour < 16) {
+            tempAlert = rand > 0.85 ? 2 : (rand > 0.7 ? 1 : 0);
+        } else {
+            tempAlert = rand > 0.95 ? 1 : 0;
+        }
+        
+        // Signal alerts random
+        signalAlert = rand > 0.9 ? 1 : 0;
+        if (rand > 0.97) signalAlert = 2;
+        
+        // Connection alerts rare
+        connAlert = rand > 0.98 ? 1 : 0;
+        
+        tempAlerts.push(tempAlert);
+        signalAlerts.push(signalAlert);
+        connectionAlerts.push(connAlert);
+        
+        // Store for real-time updates
+        alertHistory.timestamps.push(labels[labels.length-1]);
+        alertHistory.tempAlerts.push(tempAlert);
+        alertHistory.signalAlerts.push(signalAlert);
+        alertHistory.connectionAlerts.push(connAlert);
+        
+        // Keep only last 100
+        if (alertHistory.timestamps.length > 100) {
+            alertHistory.timestamps.shift();
+            alertHistory.tempAlerts.shift();
+            alertHistory.signalAlerts.shift();
+            alertHistory.connectionAlerts.shift();
+        }
+    }
+    
+    if (alertChart) {
+        alertChart.data.labels = labels;
+        alertChart.data.datasets[0].data = tempAlerts;
+        alertChart.data.datasets[1].data = signalAlerts;
+        alertChart.data.datasets[2].data = connectionAlerts;
+        alertChart.update();
+    }
+}
+
+// ============================================
+// LOAD CHART DATA
 // ============================================
 
 async function loadChartData(period) {
     currentPeriod = period;
     
-    // Update active buttons for both charts
-    document.querySelectorAll('[id^="filter"]').forEach(btn => {
-        btn.classList.remove('active', 'bg-blue-600', 'text-white');
-        btn.classList.add('bg-gray-200');
+    // Update active buttons for temp chart
+    document.querySelectorAll('[id^="filter"][id$="Hour"],[id^="filter"][id$="Day"],[id^="filter"][id$="Week"]').forEach(btn => {
+        if (!btn.id.includes('Alert')) {
+            btn.classList.remove('active', 'bg-blue-600', 'text-white');
+            btn.classList.add('bg-gray-200');
+        }
     });
     
-    // Get limit based on period
-    let limit = 24;
-    if (period === 'hour') limit = 60;
-    else if (period === 'day') limit = 24;
-    else if (period === 'week') limit = 168;
-    else if (period === 'month') limit = 720;
-    
-    // Update button styles for temperature chart
-    const tempBtnMap = {
-        'hour': 'filterHour',
-        'day': 'filterDay',
-        'week': 'filterWeek',
-        'month': 'filterMonth'
-    };
+    const tempBtnMap = { 'hour': 'filterHour', 'day': 'filterDay', 'week': 'filterWeek' };
     const tempActiveBtn = document.getElementById(tempBtnMap[period]);
     if (tempActiveBtn) {
         tempActiveBtn.classList.remove('bg-gray-200');
         tempActiveBtn.classList.add('active', 'bg-blue-600', 'text-white');
     }
     
-    // Update button styles for signal chart
-    const signalBtnMap = {
-        'hour': 'filterSignalHour',
-        'day': 'filterSignalDay',
-        'week': 'filterSignalWeek',
-        'month': 'filterSignalMonth'
-    };
+    const signalBtnMap = { 'hour': 'filterSignalHour', 'day': 'filterSignalDay', 'week': 'filterSignalWeek' };
     const signalActiveBtn = document.getElementById(signalBtnMap[period]);
     if (signalActiveBtn) {
         signalActiveBtn.classList.remove('bg-gray-200');
         signalActiveBtn.classList.add('active', 'bg-blue-600', 'text-white');
     }
     
-    // Show loading
-    document.getElementById('dataCount').innerHTML = '<div class="loading"></div>';
+    let limit = 24;
+    if (period === 'hour') limit = 60;
+    else if (period === 'day') limit = 24;
+    else if (period === 'week') limit = 168;
     
     try {
-        // Use your existing get_history.php endpoint
         const response = await fetch(`get_history.php?period=${period}&limit=${limit}&user_id=<?= $user_id ?>`);
         const result = await response.json();
         
         if (result.success && result.data) {
             const data = result.data;
-            
-            // Update temperature chart
             if (tempChart) {
-                tempChart.data.labels = data.timestamps || data.labels || [];
-                tempChart.data.datasets[0].data = data.temperatures || data.temp || [];
+                tempChart.data.labels = data.timestamps || [];
+                tempChart.data.datasets[0].data = data.temperatures || [];
                 tempChart.update();
             }
-            
-            // Update signal chart
             if (signalChart) {
-                signalChart.data.labels = data.timestamps || data.labels || [];
-                signalChart.data.datasets[0].data = data.humidities || data.humidity || [];
-                signalChart.data.datasets[1].data = data.signals || data.signal || [];
+                signalChart.data.labels = data.timestamps || [];
+                signalChart.data.datasets[0].data = data.humidities || [];
+                signalChart.data.datasets[1].data = data.signals || [];
                 signalChart.update();
             }
-            
-            // Update data count
-            const dataCount = (data.temperatures || data.temp || []).length;
-            document.getElementById('dataCount').innerHTML = dataCount || 0;
-            
-            console.log(`Loaded ${dataCount} data points for period: ${period}`);
+            document.getElementById('dataCount').innerHTML = (data.temperatures || []).length;
         } else {
-            console.error('Failed to load chart data:', result.error);
-            document.getElementById('dataCount').innerHTML = '0';
-            // Load demo data if no real data
-            loadDemoData(period);
+            generateDemoData(period, limit);
         }
     } catch(error) {
-        console.error('Error loading chart data:', error);
-        document.getElementById('dataCount').innerHTML = 'Error';
-        // Load demo data as fallback
-        loadDemoData(period);
+        generateDemoData(period, limit);
     }
 }
 
-// ============================================
-// DEMO DATA FOR TESTING (falls back if no real data)
-// ============================================
-
-function loadDemoData(period) {
+function generateDemoData(period, limit) {
     const now = new Date();
     const labels = [];
     const temps = [];
     const humidities = [];
     const signals = [];
     
-    let points = 24;
-    if (period === 'hour') points = 60;
-    else if (period === 'day') points = 24;
-    else if (period === 'week') points = 168;
-    else if (period === 'month') points = 720;
-    
-    for (let i = points; i >= 0; i--) {
+    for (let i = limit; i >= 0; i--) {
         let date = new Date(now);
         if (period === 'hour') date.setMinutes(now.getMinutes() - i);
-        else if (period === 'day') date.setHours(now.getHours() - i);
-        else if (period === 'week') date.setHours(now.getHours() - i);
         else date.setHours(now.getHours() - i);
         
         labels.push(date.toLocaleTimeString());
-        
-        // Generate realistic demo data
         const baseTemp = 22 + Math.sin(i / 10) * 5;
         const baseHumidity = 55 + Math.cos(i / 8) * 15;
         const baseSignal = 75 + Math.sin(i / 20) * 20;
@@ -483,24 +579,21 @@ function loadDemoData(period) {
         tempChart.data.datasets[0].data = temps;
         tempChart.update();
     }
-    
     if (signalChart) {
         signalChart.data.labels = labels;
         signalChart.data.datasets[0].data = humidities;
         signalChart.data.datasets[1].data = signals;
         signalChart.update();
     }
-    
-    document.getElementById('dataCount').innerHTML = points;
+    document.getElementById('dataCount').innerHTML = limit;
 }
 
 // ============================================
-// LOAD LATEST REAL TIME DATA
+// REAL TIME DATA WITH ALERT DETECTION
 // ============================================
 
 async function loadLatestData() {
     try {
-        // Use your existing get_latest_data.php endpoint
         const response = await fetch(`get_latest_data.php?user_id=<?= $user_id ?>&t=${Date.now()}`);
         const result = await response.json();
         
@@ -510,18 +603,16 @@ async function loadLatestData() {
             const humidity = parseFloat(data.humidity);
             const signal = parseFloat(data.signal_strength);
             
-            // Animate value updates
             animateValue('currentTemp', temp.toFixed(1) + '°C');
             animateValue('currentHumidity', humidity.toFixed(1) + '%');
             animateValue('currentSignal', signal.toFixed(0) + '%');
             
-            // Update last update time
             if (data.created_at) {
                 const updateDate = new Date(data.created_at);
                 document.getElementById('lastUpdate').innerHTML = updateDate.toLocaleString();
             }
             
-            // Temperature alerts
+            // Detect alerts
             let tempAlert = 0;
             if (temp >= CONFIG.TEMP_CRITICAL) {
                 tempAlert = 2;
@@ -533,7 +624,6 @@ async function loadLatestData() {
                 updateStatus('tempStatus', 'Normal ✓', 'text-green-600');
             }
             
-            // Humidity status
             if (humidity > 70) {
                 updateStatus('humidityStatus', 'High 💧', 'text-blue-600');
             } else if (humidity < 30) {
@@ -542,7 +632,6 @@ async function loadLatestData() {
                 updateStatus('humidityStatus', 'Normal ✓', 'text-green-600');
             }
             
-            // Signal alerts
             let signalAlert = 0;
             if (signal < CONFIG.SIGNAL_CRITICAL) {
                 signalAlert = 2;
@@ -554,7 +643,31 @@ async function loadLatestData() {
                 updateStatus('signalStatus', 'Excellent ✓', 'text-green-600');
             }
             
-            // AI Score calculation
+            let connectionAlert = 0;
+            
+            // Add to alert history for real-time chart update
+            const now = new Date();
+            alertHistory.timestamps.push(now.toLocaleTimeString());
+            alertHistory.tempAlerts.push(tempAlert);
+            alertHistory.signalAlerts.push(signalAlert);
+            alertHistory.connectionAlerts.push(connectionAlert);
+            
+            if (alertHistory.timestamps.length > 50) {
+                alertHistory.timestamps.shift();
+                alertHistory.tempAlerts.shift();
+                alertHistory.signalAlerts.shift();
+                alertHistory.connectionAlerts.shift();
+            }
+            
+            // Update alert chart in real-time
+            if (alertChart && currentPeriod === 'hour') {
+                alertChart.data.labels = alertHistory.timestamps;
+                alertChart.data.datasets[0].data = alertHistory.tempAlerts;
+                alertChart.data.datasets[1].data = alertHistory.signalAlerts;
+                alertChart.data.datasets[2].data = alertHistory.connectionAlerts;
+                alertChart.update('none');
+            }
+            
             let aiScore = 100;
             aiScore -= tempAlert * 20;
             aiScore -= signalAlert * 15;
@@ -563,7 +676,6 @@ async function loadLatestData() {
             animateValue('aiScore', aiScore + '%');
             document.getElementById('aiScoreBar').style.width = aiScore + '%';
             
-            // Health status
             if (aiScore >= 80) {
                 updateStatus('aiHealth', 'Excellent ✓', 'text-green-600');
             } else if (aiScore >= 50) {
@@ -572,7 +684,6 @@ async function loadLatestData() {
                 updateStatus('aiHealth', 'Critical 🔴', 'text-red-600');
             }
             
-            // Anomaly detection
             if (tempAlert === 2 || signalAlert === 2) {
                 updateStatus('anomalyText', 'Critical 🔴', 'text-red-600');
             } else if (tempAlert === 1 || signalAlert === 1) {
@@ -581,15 +692,11 @@ async function loadLatestData() {
                 updateStatus('anomalyText', 'Normal ✓', 'text-green-600');
             }
             
-            // Device status
             document.getElementById('deviceStatus').innerHTML = 'Online';
             document.getElementById('deviceStatus').className = 'text-2xl font-bold text-green-600';
-        } else {
-            console.log('No real data, using demo mode');
-            loadDemoData(currentPeriod);
         }
     } catch(error) {
-        console.error('Error loading latest data:', error);
+        console.error('Error:', error);
         document.getElementById('deviceStatus').innerHTML = 'Demo Mode';
         document.getElementById('deviceStatus').className = 'text-2xl font-bold text-yellow-600';
     }
@@ -600,9 +707,7 @@ function animateValue(elementId, newValue) {
     if (element && element.innerText !== newValue) {
         element.classList.add('changed');
         element.innerText = newValue;
-        setTimeout(() => {
-            element.classList.remove('changed');
-        }, 300);
+        setTimeout(() => element.classList.remove('changed'), 300);
     }
 }
 
@@ -615,14 +720,13 @@ function updateStatus(elementId, newText, className) {
 }
 
 // ============================================
-// GENERATE PDF REPORT
+// PDF GENERATION
 // ============================================
 
 async function generatePDF() {
     const { jsPDF } = window.jspdf;
     const doc = new jsPDF();
     
-    // Header
     doc.setFillColor(59, 130, 246);
     doc.rect(0, 0, 210, 40, 'F');
     doc.setTextColor(255, 255, 255);
@@ -632,14 +736,11 @@ async function generatePDF() {
     doc.setFontSize(12);
     doc.text('Environmental Monitoring Report', 20, 35);
     
-    // Report info
     doc.setTextColor(100, 100, 100);
     doc.setFontSize(10);
     doc.text(`Generated: ${new Date().toLocaleString()}`, 20, 55);
     doc.text(`User: <?= $username ?>`, 20, 62);
-    doc.text(`Period: ${currentPeriod}`, 20, 69);
     
-    // Current readings
     doc.setTextColor(0, 0, 0);
     doc.setFontSize(14);
     doc.setFont('helvetica', 'bold');
@@ -653,11 +754,17 @@ async function generatePDF() {
     doc.text(`AI Score: ${document.getElementById('aiScore').innerText}`, 25, 130);
     doc.text(`Status: ${document.getElementById('aiHealth').innerText}`, 25, 140);
     
-    // Save PDF
+    // Add alert summary
+    doc.setFontSize(12);
+    doc.text('Alert Summary', 20, 160);
+    doc.setFontSize(10);
+    const alertCount = alertHistory.tempAlerts.filter(a => a > 0).length;
+    doc.text(`Total Alerts Detected: ${alertCount}`, 25, 175);
+    
     const filename = `ENVIRONET_Report_${new Date().toISOString().slice(0,19).replace(/:/g, '-')}.pdf`;
     doc.save(filename);
     
-    showNotification('PDF Report generated successfully!', 'success');
+    showNotification('PDF Report generated!', 'success');
 }
 
 function showNotification(message, type) {
@@ -667,11 +774,7 @@ function showNotification(message, type) {
     } transition-all duration-300 transform translate-x-full`;
     notification.innerHTML = `<div class="flex items-center gap-2">✓ ${message}</div>`;
     document.body.appendChild(notification);
-    
-    setTimeout(() => {
-        notification.style.transform = 'translateX(0)';
-    }, 100);
-    
+    setTimeout(() => notification.style.transform = 'translateX(0)', 100);
     setTimeout(() => {
         notification.style.transform = 'translateX(100%)';
         setTimeout(() => notification.remove(), 300);
@@ -683,25 +786,16 @@ function showNotification(message, type) {
 // ============================================
 
 document.addEventListener('DOMContentLoaded', () => {
-    // Initialize charts
     initCharts();
-    
-    // Load initial chart data (day period)
     loadChartData('day');
-    
-    // Load latest real-time data
+    loadAlertData('day');
     loadLatestData();
-    
-    // Set up real-time updates every 5 seconds
-    if (updateInterval) clearInterval(updateInterval);
-    updateInterval = setInterval(() => {
+    setInterval(() => {
         loadLatestData();
-        // Refresh chart data every minute
         loadChartData(currentPeriod);
+        loadAlertData(currentPeriod);
     }, CONFIG.UPDATE_INTERVAL);
-    
-    console.log('✅ Real-time monitoring started - Updates every 5 seconds');
-    console.log('📊 Using existing PHP endpoints: get_history.php, get_latest_data.php');
+    console.log('✅ Real-time monitoring with Alert Analysis started');
 });
 </script>
 </body>
