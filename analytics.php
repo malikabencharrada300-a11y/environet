@@ -267,6 +267,10 @@ body{
 
 <script>
 
+// ============================================
+// REAL TIME DHT11 + ALERT ANALYTICS SYSTEM
+// ============================================
+
 const CONFIG = {
 
     TEMP_WARNING: 24,
@@ -275,86 +279,198 @@ const CONFIG = {
     SIGNAL_WARNING: 60,
     SIGNAL_CRITICAL: 30,
 
-    OFFLINE_THRESHOLD: 60000
+    SENSOR_TIMEOUT: 30000,
+
+    MAX_HISTORY: 50
 };
 
 let tempHistory = [];
 let signalHistory = [];
+let humidityHistory = [];
 let labelsHistory = [];
 
-let tempChart;
-let signalChart;
+let tempAlertHistory = [];
+let signalAlertHistory = [];
+let connectionAlertHistory = [];
+
+let historyChart;
+let alertChart;
+
+// ============================================
+// INIT CHARTS
+// ============================================
 
 function initCharts() {
 
-    const tctx =
-        document.getElementById('tempChart');
+    // HISTORY CHART
 
-    tempChart =
-        new Chart(tctx, {
+    const hctx =
+        document.getElementById(
+            'historyChart'
+        ).getContext('2d');
 
-        type:'line',
+    historyChart =
+        new Chart(hctx, {
 
-        data:{
-            labels:[],
+        type: 'line',
 
-            datasets:[{
+        data: {
 
-                label:'Temperature °C',
+            labels: [],
 
-                data:[],
+            datasets: [
 
-                borderColor:'#f97316',
+                {
+                    label: 'Temperature °C',
 
-                backgroundColor:
-                'rgba(249,115,22,0.1)',
+                    data: [],
 
-                fill:true,
+                    borderColor: '#f97316',
 
-                tension:0.4
-            }]
+                    backgroundColor:
+                    'rgba(249,115,22,0.1)',
+
+                    fill: true,
+
+                    tension: 0.4
+                },
+
+                {
+                    label: 'Humidity %',
+
+                    data: [],
+
+                    borderColor: '#06b6d4',
+
+                    backgroundColor:
+                    'rgba(6,182,212,0.1)',
+
+                    fill: true,
+
+                    tension: 0.4
+                },
+
+                {
+                    label: 'Signal %',
+
+                    data: [],
+
+                    borderColor: '#2563eb',
+
+                    backgroundColor:
+                    'rgba(37,99,235,0.1)',
+
+                    fill: true,
+
+                    tension: 0.4
+                }
+            ]
         },
 
-        options:{
-            responsive:true
+        options: {
+
+            responsive: true,
+
+            maintainAspectRatio: false,
+
+            interaction: {
+
+                mode: 'index',
+
+                intersect: false
+            },
+
+            plugins: {
+
+                legend: {
+
+                    position: 'top'
+                }
+            }
         }
     });
 
-    const sctx =
-        document.getElementById('signalChart');
+    // ALERT CHART
 
-    signalChart =
-        new Chart(sctx, {
+    const actx =
+        document.getElementById(
+            'alertChart'
+        ).getContext('2d');
 
-        type:'line',
+    alertChart =
+        new Chart(actx, {
 
-        data:{
-            labels:[],
+        type: 'line',
 
-            datasets:[{
+        data: {
 
-                label:'Signal %',
+            labels: [],
 
-                data:[],
+            datasets: [
 
-                borderColor:'#2563eb',
+                {
+                    label: 'Temperature Alerts',
 
-                backgroundColor:
-                'rgba(37,99,235,0.1)',
+                    data: [],
 
-                fill:true,
+                    borderColor: '#ef4444',
 
-                tension:0.4
-            }]
+                    backgroundColor:
+                    'rgba(239,68,68,0.1)',
+
+                    fill: true,
+
+                    tension: 0.4
+                },
+
+                {
+                    label: 'Signal Alerts',
+
+                    data: [],
+
+                    borderColor: '#f59e0b',
+
+                    backgroundColor:
+                    'rgba(245,158,11,0.1)',
+
+                    fill: true,
+
+                    tension: 0.4
+                },
+
+                {
+                    label: 'Connection Alerts',
+
+                    data: [],
+
+                    borderColor: '#8b5cf6',
+
+                    backgroundColor:
+                    'rgba(139,92,246,0.1)',
+
+                    fill: true,
+
+                    tension: 0.4
+                }
+            ]
         },
 
-        options:{
-            responsive:true
+        options: {
+
+            responsive: true,
+
+            maintainAspectRatio: false
         }
     });
 }
 
+// ============================================
+// OFFLINE UI
+// ============================================
+
 function setOfflineUI() {
+
+    // DEVICE
 
     document.getElementById(
         'deviceStatus'
@@ -363,7 +479,24 @@ function setOfflineUI() {
     document.getElementById(
         'deviceStatus'
     ).className =
-    'text-2xl font-bold text-red-600';
+    'text-red-600 font-bold';
+
+    // DHT11
+
+    document.getElementById(
+        'dhtStatus'
+    ).innerHTML = 'Disconnected';
+
+    document.getElementById(
+        'dhtStatus'
+    ).className =
+    'text-red-600 font-bold';
+
+    document.getElementById(
+        'dhtIcon'
+    ).innerHTML = '🔴';
+
+    // VALUES
 
     document.getElementById(
         'currentTemp'
@@ -380,9 +513,17 @@ function setOfflineUI() {
     document.getElementById(
         'anomalyText'
     ).innerHTML = 'Offline';
+
+    document.getElementById(
+        'aiHealth'
+    ).innerHTML = 'Offline';
 }
 
-async function loadRealTimeData() {
+// ============================================
+// LOAD REAL TIME DATA
+// ============================================
+
+async function loadAnalytics() {
 
     try {
 
@@ -394,26 +535,10 @@ async function loadRealTimeData() {
         const json =
             await response.json();
 
-        if (!json.success) {
-
-            setOfflineUI();
-
-            return;
-        }
-
-        const data = json.data;
-
-        const createdAt =
-            new Date(
-                data.created_at
-            ).getTime();
-
-        const now =
-            Date.now();
-
         if (
-            now - createdAt >
-            CONFIG.OFFLINE_THRESHOLD
+            !json.success
+            ||
+            !json.data
         ) {
 
             setOfflineUI();
@@ -421,7 +546,39 @@ async function loadRealTimeData() {
             return;
         }
 
-        // ONLINE
+        const data =
+            json.data;
+
+        const now =
+            Date.now();
+
+        const createdAt =
+            new Date(
+                data.created_at
+            ).getTime();
+
+        const diff =
+            now - createdAt;
+
+        // ====================================
+        // SENSOR OFFLINE
+        // ====================================
+
+        if (
+            diff >
+            CONFIG.SENSOR_TIMEOUT
+        ) {
+
+            setOfflineUI();
+
+            connectionAlertHistory.push(1);
+
+            return;
+        }
+
+        // ====================================
+        // SENSOR ONLINE
+        // ====================================
 
         document.getElementById(
             'deviceStatus'
@@ -430,9 +587,24 @@ async function loadRealTimeData() {
         document.getElementById(
             'deviceStatus'
         ).className =
-        'text-2xl font-bold text-green-600';
+        'text-green-600 font-bold';
 
-        // DATA
+        document.getElementById(
+            'dhtStatus'
+        ).innerHTML = 'Connected';
+
+        document.getElementById(
+            'dhtStatus'
+        ).className =
+        'text-green-600 font-bold';
+
+        document.getElementById(
+            'dhtIcon'
+        ).innerHTML = '🟢';
+
+        // ====================================
+        // VALUES
+        // ====================================
 
         const temp =
             parseFloat(
@@ -448,8 +620,6 @@ async function loadRealTimeData() {
             parseFloat(
                 data.signal_strength
             );
-
-        // UPDATE UI
 
         document.getElementById(
             'currentTemp'
@@ -473,11 +643,21 @@ async function loadRealTimeData() {
             data.created_at
         ).toLocaleTimeString();
 
-        // TEMPERATURE STATUS
+        // ====================================
+        // ALERT DETECTION
+        // ====================================
+
+        let tempAlert = 0;
+        let signalAlert = 0;
+        let connectionAlert = 0;
+
+        // TEMP ALERT
 
         if (
             temp >= CONFIG.TEMP_CRITICAL
         ) {
+
+            tempAlert = 2;
 
             document.getElementById(
                 'tempStatus'
@@ -486,11 +666,13 @@ async function loadRealTimeData() {
             document.getElementById(
                 'tempStatus'
             ).className =
-            'mt-2 font-bold text-red-600';
+            'text-red-600 font-bold';
 
         } else if (
             temp >= CONFIG.TEMP_WARNING
         ) {
+
+            tempAlert = 1;
 
             document.getElementById(
                 'tempStatus'
@@ -499,7 +681,7 @@ async function loadRealTimeData() {
             document.getElementById(
                 'tempStatus'
             ).className =
-            'mt-2 font-bold text-orange-600';
+            'text-orange-600 font-bold';
 
         } else {
 
@@ -510,14 +692,17 @@ async function loadRealTimeData() {
             document.getElementById(
                 'tempStatus'
             ).className =
-            'mt-2 font-bold text-green-600';
+            'text-green-600 font-bold';
         }
 
-        // SIGNAL STATUS
+        // SIGNAL ALERT
 
         if (
-            signal < CONFIG.SIGNAL_CRITICAL
+            signal <
+            CONFIG.SIGNAL_CRITICAL
         ) {
+
+            signalAlert = 2;
 
             document.getElementById(
                 'signalStatus'
@@ -526,11 +711,14 @@ async function loadRealTimeData() {
             document.getElementById(
                 'signalStatus'
             ).className =
-            'mt-2 font-bold text-red-600';
+            'text-red-600 font-bold';
 
         } else if (
-            signal < CONFIG.SIGNAL_WARNING
+            signal <
+            CONFIG.SIGNAL_WARNING
         ) {
+
+            signalAlert = 1;
 
             document.getElementById(
                 'signalStatus'
@@ -539,7 +727,7 @@ async function loadRealTimeData() {
             document.getElementById(
                 'signalStatus'
             ).className =
-            'mt-2 font-bold text-orange-600';
+            'text-orange-600 font-bold';
 
         } else {
 
@@ -550,94 +738,101 @@ async function loadRealTimeData() {
             document.getElementById(
                 'signalStatus'
             ).className =
-            'mt-2 font-bold text-green-600';
+            'text-green-600 font-bold';
         }
 
+        // ====================================
         // AI
+        // ====================================
 
-        let score = 100;
+        let aiScore = 100;
 
-        if (
-            temp >= CONFIG.TEMP_WARNING
-        ) score -= 20;
+        aiScore -= tempAlert * 25;
 
-        if (
-            temp >= CONFIG.TEMP_CRITICAL
-        ) score -= 30;
+        aiScore -= signalAlert * 25;
 
-        if (
-            signal < CONFIG.SIGNAL_WARNING
-        ) score -= 20;
-
-        if (
-            signal < CONFIG.SIGNAL_CRITICAL
-        ) score -= 30;
-
-        score = Math.max(0, score);
+        aiScore = Math.max(0, aiScore);
 
         document.getElementById(
             'aiScore'
         ).innerHTML =
-        score + '%';
+        aiScore + '%';
 
-        // HEALTH
+        if (aiScore >= 80) {
 
-        let health = 'Excellent';
-        let healthClass =
-            'text-3xl font-bold text-green-600';
+            document.getElementById(
+                'aiHealth'
+            ).innerHTML = 'Excellent';
 
-        if (score < 50) {
+            document.getElementById(
+                'aiHealth'
+            ).className =
+            'text-green-600 font-bold';
 
-            health = 'Critical';
+        } else if (aiScore >= 50) {
 
-            healthClass =
-            'text-3xl font-bold text-red-600';
+            document.getElementById(
+                'aiHealth'
+            ).innerHTML = 'Warning';
 
-        } else if (score < 80) {
+            document.getElementById(
+                'aiHealth'
+            ).className =
+            'text-orange-600 font-bold';
 
-            health = 'Warning';
+        } else {
 
-            healthClass =
-            'text-3xl font-bold text-orange-600';
+            document.getElementById(
+                'aiHealth'
+            ).innerHTML = 'Critical';
+
+            document.getElementById(
+                'aiHealth'
+            ).className =
+            'text-red-600 font-bold';
         }
 
-        document.getElementById(
-            'healthText'
-        ).innerHTML = health;
-
-        document.getElementById(
-            'healthText'
-        ).className =
-        healthClass;
-
+        // ====================================
         // ANOMALY
-
-        let anomaly = 'None';
+        // ====================================
 
         if (
-            temp >= CONFIG.TEMP_CRITICAL
+            tempAlert === 2
             ||
-            signal < CONFIG.SIGNAL_CRITICAL
+            signalAlert === 2
         ) {
 
-            anomaly = 'Critical';
+            document.getElementById(
+                'anomalyText'
+            ).innerHTML =
+            'Critical';
 
         } else if (
-            temp >= CONFIG.TEMP_WARNING
+            tempAlert === 1
             ||
-            signal < CONFIG.SIGNAL_WARNING
+            signalAlert === 1
         ) {
 
-            anomaly = 'Warning';
+            document.getElementById(
+                'anomalyText'
+            ).innerHTML =
+            'Warning';
+
+        } else {
+
+            document.getElementById(
+                'anomalyText'
+            ).innerHTML =
+            'Normal';
         }
 
-        document.getElementById(
-            'anomalyText'
-        ).innerHTML = anomaly;
-
+        // ====================================
         // HISTORY
+        // ====================================
 
         tempHistory.push(temp);
+
+        humidityHistory.push(humidity);
 
         signalHistory.push(signal);
 
@@ -645,39 +840,97 @@ async function loadRealTimeData() {
             new Date().toLocaleTimeString()
         );
 
-        if (tempHistory.length > 20) {
+        tempAlertHistory.push(tempAlert);
+
+        signalAlertHistory.push(signalAlert);
+
+        connectionAlertHistory.push(connectionAlert);
+
+        // LIMIT
+
+        if (
+            tempHistory.length >
+            CONFIG.MAX_HISTORY
+        ) {
 
             tempHistory.shift();
+
+            humidityHistory.shift();
 
             signalHistory.shift();
 
             labelsHistory.shift();
+
+            tempAlertHistory.shift();
+
+            signalAlertHistory.shift();
+
+            connectionAlertHistory.shift();
         }
 
-        // UPDATE CHARTS
+        // ====================================
+        // UPDATE HISTORY CHART
+        // ====================================
 
-        tempChart.data.labels =
+        historyChart.data.labels =
             labelsHistory;
 
-        tempChart.data.datasets[0].data =
+        historyChart.data.datasets[0].data =
             tempHistory;
 
-        tempChart.update();
+        historyChart.data.datasets[1].data =
+            humidityHistory;
 
-        signalChart.data.labels =
-            labelsHistory;
-
-        signalChart.data.datasets[0].data =
+        historyChart.data.datasets[2].data =
             signalHistory;
 
-        signalChart.update();
+        historyChart.update();
 
-        // DATA COUNT
+        // ====================================
+        // UPDATE ALERT CHART
+        // ====================================
+
+        alertChart.data.labels =
+            labelsHistory;
+
+        alertChart.data.datasets[0].data =
+            tempAlertHistory;
+
+        alertChart.data.datasets[1].data =
+            signalAlertHistory;
+
+        alertChart.data.datasets[2].data =
+            connectionAlertHistory;
+
+        alertChart.update();
+
+        // ====================================
+        // COUNTERS
+        // ====================================
 
         document.getElementById(
-            'dataCount'
+            'totalTempAlerts'
         ).innerHTML =
-        tempHistory.length;
+        tempAlertHistory.reduce(
+            (a,b)=>a+b,
+            0
+        );
+
+        document.getElementById(
+            'totalSignalAlerts'
+        ).innerHTML =
+        signalAlertHistory.reduce(
+            (a,b)=>a+b,
+            0
+        );
+
+        document.getElementById(
+            'totalConnAlerts'
+        ).innerHTML =
+        connectionAlertHistory.reduce(
+            (a,b)=>a+b,
+            0
+        );
 
     } catch(err) {
 
@@ -687,106 +940,9 @@ async function loadRealTimeData() {
     }
 }
 
-async function generatePDF() {
-
-    const { jsPDF } =
-        window.jspdf;
-
-    const doc =
-        new jsPDF();
-
-    doc.setFontSize(24);
-
-    doc.text(
-        'ENVIRONET REPORT',
-        20,
-        20
-    );
-
-    doc.setFontSize(12);
-
-    doc.text(
-        `Generated: ${new Date().toLocaleString()}`,
-        20,
-        35
-    );
-
-    doc.text(
-        `Temperature: ${
-            document.getElementById(
-                'currentTemp'
-            ).innerText
-        }`,
-        20,
-        50
-    );
-
-    doc.text(
-        `Humidity: ${
-            document.getElementById(
-                'currentHumidity'
-            ).innerText
-        }`,
-        20,
-        60
-    );
-
-    doc.text(
-        `Signal: ${
-            document.getElementById(
-                'currentSignal'
-            ).innerText
-        }`,
-        20,
-        70
-    );
-
-    const chart1 =
-        document.getElementById(
-            'tempChart'
-        );
-
-    const img1 =
-        chart1.toDataURL(
-            'image/png'
-        );
-
-    doc.addImage(
-        img1,
-        'PNG',
-        15,
-        90,
-        180,
-        70
-    );
-
-    doc.addPage();
-
-    const chart2 =
-        document.getElementById(
-            'signalChart'
-        );
-
-    const img2 =
-        chart2.toDataURL(
-            'image/png'
-        );
-
-    doc.addImage(
-        img2,
-        'PNG',
-        15,
-        20,
-        180,
-        70
-    );
-
-    doc.save(
-        'ENVIRONET_REPORT.pdf'
-    );
-}
-
-// START
+// ============================================
+// START REAL TIME
+// ============================================
 
 document.addEventListener(
     'DOMContentLoaded',
@@ -794,11 +950,11 @@ document.addEventListener(
 
         initCharts();
 
-        loadRealTimeData();
+        loadAnalytics();
 
         setInterval(() => {
 
-            loadRealTimeData();
+            loadAnalytics();
 
         }, 5000);
     }
