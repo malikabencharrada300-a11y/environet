@@ -83,6 +83,24 @@ body {
     transform: scale(1.1);
     color: #3b82f6;
 }
+.sensor-status {
+    display: inline-block;
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    animation: pulse 1.5s infinite;
+}
+.sensor-status.online {
+    background-color: #10b981;
+    box-shadow: 0 0 5px #10b981;
+}
+.sensor-status.offline {
+    background-color: #ef4444;
+}
+@keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.5; }
+}
 </style>
 </head>
 <body class="p-6">
@@ -111,13 +129,24 @@ body {
 
     <!-- STATS CARDS -->
     <div class="grid md:grid-cols-4 gap-5 mb-6">
+        <!-- Device Status Card with DHT11 Sensor State and Last Update -->
         <div class="card">
             <h2 class="font-bold mb-4">📡 Device Status</h2>
-            <p class="text-gray-500 text-sm">State</p>
+            <p class="text-gray-500 text-sm">System State</p>
             <p id="deviceStatus" class="text-2xl font-bold text-green-600">Online</p>
-            <p class="text-gray-500 text-sm mt-3">Last Update</p>
-            <p id="lastUpdate" class="font-bold text-sm">--</p>
+            
+            <!-- DHT11 Sensor State -->
+            <p class="text-gray-500 text-sm mt-3">🟢 DHT11 Sensor</p>
+            <div class="flex items-center gap-2">
+                <span id="dhtStatus" class="sensor-status online"></span>
+                <span id="dhtStatusText" class="font-bold text-green-600">Connected</span>
+            </div>
+            
+            <!-- Last Update -->
+            <p class="text-gray-500 text-sm mt-3">⏱ Last Update</p>
+            <p id="lastUpdate" class="font-bold text-sm">--:--:--</p>
         </div>
+
         <div class="card">
             <h2 class="font-bold mb-4">🌡 Temperature</h2>
             <p id="currentTemp" class="text-4xl font-black text-orange-600 value-update">--°C</p>
@@ -215,7 +244,8 @@ const CONFIG = {
     TEMP_CRITICAL: 35,
     SIGNAL_WARNING: 60,
     SIGNAL_CRITICAL: 30,
-    UPDATE_INTERVAL: 5000
+    UPDATE_INTERVAL: 5000,
+    SENSOR_TIMEOUT: 30000 // 30 seconds timeout for sensor
 };
 
 // Store alert history
@@ -404,6 +434,46 @@ function initCharts() {
             }
         }
     });
+}
+
+// ============================================
+// UPDATE DHT11 SENSOR STATUS
+// ============================================
+
+function updateDHT11Status(isOnline, lastDataTime = null) {
+    const dhtStatusDot = document.getElementById('dhtStatus');
+    const dhtStatusText = document.getElementById('dhtStatusText');
+    
+    if (isOnline) {
+        dhtStatusDot.className = 'sensor-status online';
+        dhtStatusText.innerHTML = 'Connected ✅';
+        dhtStatusText.className = 'font-bold text-green-600';
+    } else {
+        dhtStatusDot.className = 'sensor-status offline';
+        dhtStatusText.innerHTML = 'Disconnected ❌';
+        dhtStatusText.className = 'font-bold text-red-600';
+    }
+}
+
+// ============================================
+// UPDATE LAST UPDATE TIME
+// ============================================
+
+function updateLastUpdateTime(timestamp) {
+    const lastUpdateElement = document.getElementById('lastUpdate');
+    if (timestamp) {
+        const date = new Date(timestamp);
+        const formattedTime = date.toLocaleTimeString('en-US', {
+            hour: '2-digit',
+            minute: '2-digit',
+            second: '2-digit'
+        });
+        lastUpdateElement.innerHTML = formattedTime;
+        lastUpdateElement.className = 'font-bold text-sm text-green-600';
+    } else {
+        lastUpdateElement.innerHTML = '--:--:--';
+        lastUpdateElement.className = 'font-bold text-sm text-gray-500';
+    }
 }
 
 // ============================================
@@ -605,15 +675,17 @@ async function loadLatestData() {
             const temp = parseFloat(data.temperature);
             const humidity = parseFloat(data.humidity);
             const signal = parseFloat(data.signal_strength);
+            const lastUpdateTime = data.created_at;
+            
+            // Update DHT11 status - ONLINE
+            updateDHT11Status(true);
+            
+            // Update last update time
+            updateLastUpdateTime(lastUpdateTime);
             
             animateValue('currentTemp', temp.toFixed(1) + '°C');
             animateValue('currentHumidity', humidity.toFixed(1) + '%');
             animateValue('currentSignal', signal.toFixed(0) + '%');
-            
-            if (data.created_at) {
-                const updateDate = new Date(data.created_at);
-                document.getElementById('lastUpdate').innerHTML = updateDate.toLocaleString();
-            }
             
             let tempAlert = 0;
             if (temp >= CONFIG.TEMP_CRITICAL) {
@@ -694,11 +766,20 @@ async function loadLatestData() {
             
             document.getElementById('deviceStatus').innerHTML = 'Online';
             document.getElementById('deviceStatus').className = 'text-2xl font-bold text-green-600';
+            
+        } else {
+            // No data received - DHT11 offline
+            updateDHT11Status(false);
+            updateLastUpdateTime(null);
+            document.getElementById('deviceStatus').innerHTML = 'Standby';
+            document.getElementById('deviceStatus').className = 'text-2xl font-bold text-yellow-600';
         }
     } catch(error) {
         console.error('Error:', error);
-        document.getElementById('deviceStatus').innerHTML = 'Demo Mode';
-        document.getElementById('deviceStatus').className = 'text-2xl font-bold text-yellow-600';
+        updateDHT11Status(false);
+        updateLastUpdateTime(null);
+        document.getElementById('deviceStatus').innerHTML = 'Offline';
+        document.getElementById('deviceStatus').className = 'text-2xl font-bold text-red-600';
     }
 }
 
@@ -720,19 +801,14 @@ function updateStatus(elementId, newText, className) {
 }
 
 // ============================================
-// PDF GENERATION
+// PDF GENERATION WITH LOGO
 // ============================================
 
 async function generatePDF() {
     const { jsPDF } = window.jspdf;
     const doc = new jsPDF();
     
-    // ============================================
-    // AJOUT DU LOGO DANS LE RAPPORT PDF
-    // ============================================
-    
-    // Création d'un logo texte stylisé (ou vous pouvez utiliser une image)
-    // Option 1: Logo texte stylisé
+    // Logo texte stylisé
     doc.setFillColor(59, 130, 246);
     doc.roundedRect(14, 14, 30, 30, 5, 5, 'F');
     doc.setTextColor(255, 255, 255);
@@ -742,16 +818,10 @@ async function generatePDF() {
     doc.setFontSize(8);
     doc.text('NET', 28, 34);
     
-    // Option 2: Si vous avez une image logo (décommentez cette partie et mettez le chemin de votre logo)
-    // const logoImage = new Image();
-    // logoImage.src = 'path/to/your/logo.png'; // Remplacez par le chemin de votre logo
-    // doc.addImage(logoImage, 'PNG', 14, 14, 30, 30);
-    
-    // Entête du rapport
+    // Entête
     doc.setFillColor(59, 130, 246);
     doc.rect(0, 0, 210, 50, 'F');
     
-    // Titre du rapport avec logo intégré
     doc.setTextColor(255, 255, 255);
     doc.setFontSize(24);
     doc.setFont('helvetica', 'bold');
@@ -760,46 +830,47 @@ async function generatePDF() {
     doc.setFont('helvetica', 'normal');
     doc.text('Environmental Monitoring Report', 55, 40);
     
-    // Ligne décorative
     doc.setDrawColor(255, 255, 255);
     doc.setLineWidth(0.5);
     doc.line(55, 45, 190, 45);
     
-    // Informations du rapport
+    // Informations
     doc.setTextColor(100, 100, 100);
     doc.setFontSize(10);
     doc.text(`Generated: ${new Date().toLocaleString()}`, 20, 65);
     doc.text(`User: <?= $username ?>`, 20, 72);
     doc.text(`Report ID: ENV-${Date.now()}`, 20, 79);
     
+    // DHT11 Status dans le PDF
+    const dhtStatus = document.getElementById('dhtStatusText').innerText;
+    doc.text(`DHT11 Sensor: ${dhtStatus}`, 20, 89);
+    doc.text(`Last Update: ${document.getElementById('lastUpdate').innerText}`, 20, 96);
+    
     // Section Résumé
     doc.setDrawColor(59, 130, 246);
     doc.setLineWidth(0.5);
-    doc.line(20, 90, 190, 90);
+    doc.line(20, 106, 190, 106);
     
     doc.setTextColor(0, 0, 0);
     doc.setFontSize(16);
     doc.setFont('helvetica', 'bold');
-    doc.text('Executive Summary', 20, 105);
+    doc.text('Executive Summary', 20, 120);
     
     doc.setFontSize(10);
     doc.setFont('helvetica', 'normal');
-    doc.text(`Temperature: ${document.getElementById('currentTemp').innerText}`, 25, 120);
-    doc.text(`Humidity: ${document.getElementById('currentHumidity').innerText}`, 25, 130);
-    doc.text(`Signal: ${document.getElementById('currentSignal').innerText}`, 25, 140);
-    doc.text(`AI Score: ${document.getElementById('aiScore').innerText}`, 25, 150);
-    doc.text(`System Status: ${document.getElementById('aiHealth').innerText}`, 25, 160);
+    doc.text(`Temperature: ${document.getElementById('currentTemp').innerText}`, 25, 135);
+    doc.text(`Humidity: ${document.getElementById('currentHumidity').innerText}`, 25, 145);
+    doc.text(`Signal: ${document.getElementById('currentSignal').innerText}`, 25, 155);
+    doc.text(`AI Score: ${document.getElementById('aiScore').innerText}`, 25, 165);
+    doc.text(`System Status: ${document.getElementById('aiHealth').innerText}`, 25, 175);
     
-    // Alerte count
     const alertCount = alertHistory.tempAlerts.filter(a => a > 0).length;
-    doc.text(`Total Alerts: ${alertCount}`, 25, 175);
+    doc.text(`Total Alerts: ${alertCount}`, 25, 185);
     
-    // Pied de page avec logo
+    // Footer
     const pageCount = doc.internal.getNumberOfPages();
     for(let i = 1; i <= pageCount; i++) {
         doc.setPage(i);
-        
-        // Petit logo dans le pied de page
         doc.setFillColor(59, 130, 246);
         doc.roundedRect(20, doc.internal.pageSize.height - 15, 8, 8, 2, 2, 'F');
         doc.setTextColor(255, 255, 255);
@@ -848,7 +919,7 @@ document.addEventListener('DOMContentLoaded', () => {
         loadSensorData(currentSensorPeriod);
         loadAlertData(currentAlertPeriod);
     }, CONFIG.UPDATE_INTERVAL);
-    console.log('✅ Real-time monitoring with Combined Sensor Chart started');
+    console.log('✅ Real-time monitoring with DHT11 Status and Last Update started');
 });
 </script>
 </body>
