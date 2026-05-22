@@ -1409,11 +1409,32 @@ async function generatePDFReport() {
                 'anomalyText'
             ).textContent;
 
-        // COVER
+        // LOGO
+
+        const logo = new Image();
+
+        logo.src = 'logo.png';
+
+        await new Promise(resolve => {
+            logo.onload = resolve;
+        });
+
+        // COVER PAGE
 
         doc.setFillColor(15,23,42);
 
         doc.rect(0,0,W,H,'F');
+
+        // ADD LOGO
+
+        doc.addImage(
+            logo,
+            'PNG',
+            75,
+            20,
+            60,
+            60
+        );
 
         doc.setTextColor(255,255,255);
 
@@ -1421,16 +1442,16 @@ async function generatePDFReport() {
 
         doc.text(
             "ENVIRONET",
-            60,
-            55
+            58,
+            95
         );
 
         doc.setFontSize(18);
 
         doc.text(
             "SMART ANALYTICS REPORT",
-            35,
-            80
+            28,
+            115
         );
 
         doc.setFontSize(12);
@@ -1438,13 +1459,13 @@ async function generatePDFReport() {
         doc.text(
             `Generated for: ${username}`,
             35,
-            105
+            145
         );
 
         doc.text(
             `Date: ${new Date().toLocaleString()}`,
             35,
-            115
+            155
         );
 
         // DASHBOARD PAGE
@@ -1531,7 +1552,7 @@ async function generatePDFReport() {
             }
         });
 
-        // CHART PAGE
+        // CHARTS PAGE
 
         doc.addPage();
 
@@ -1556,7 +1577,7 @@ async function generatePDFReport() {
         if (historyCanvas) {
 
             doc.addImage(
-                historyCanvas.toDataURL('logo.png'),
+                historyCanvas.toDataURL('image/png'),
                 'PNG',
                 15,
                 35,
@@ -1577,7 +1598,7 @@ async function generatePDFReport() {
             );
         }
 
-        // CONCLUSION
+        // CONCLUSION PAGE
 
         doc.addPage();
 
@@ -1668,7 +1689,6 @@ async function generatePDFReport() {
         }
     }
 }
-
 // ============================================
 // INIT
 // ============================================
