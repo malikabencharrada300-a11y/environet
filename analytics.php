@@ -533,36 +533,99 @@ $username = $_SESSION['user_name'] ?? 'User';
         // ============================================
         // UPDATE ALERT DATA (3 CURVES)
         // ============================================
-        function updateAlertChartData() {
-            // Generate random data for 7 days
-            const tempData = [];
-            const signalData = [];
-            const connData = [];
-            
-            for (let i = 0; i < 7; i++) {
-                tempData.push(Math.floor(Math.random() * 10) + 1);   // 1-10 temperature alerts
-                signalData.push(Math.floor(Math.random() * 7) + 1);  // 1-7 signal alerts
-                connData.push(Math.floor(Math.random() * 5) + 1);    // 1-5 connection alerts
-            }
+       async function updateAlertChartData() {
 
-            // Update chart
-            state.charts.alert.data.datasets[0].data = tempData;
-            state.charts.alert.data.datasets[1].data = signalData;
-            state.charts.alert.data.datasets[2].data = connData;
-            state.charts.alert.update('active');
+    try {
 
-            // Update counters
-            const totalTemp = tempData.reduce((a, b) => a + b, 0);
-            const totalSignal = signalData.reduce((a, b) => a + b, 0);
-            const totalConn = connData.reduce((a, b) => a + b, 0);
+        const response = await fetch(
+            `get_alerts_chart.php`
+        );
 
-            document.getElementById('tempAlerts').textContent = totalTemp;
-            document.getElementById('signalAlerts').textContent = totalSignal;
-            document.getElementById('connectionAlerts').textContent = totalConn;
-            document.getElementById('todayAlerts').textContent = totalTemp + totalSignal + totalConn;
+        const result = await response.json();
 
-            calculateAIScore([totalTemp, totalSignal, totalConn]);
-        }
+        if (!result.success) return;
+
+        const rows = result.alerts;
+
+        const labels = [];
+        const tempData = [];
+        const signalData = [];
+        const connData = [];
+
+        rows.forEach(row => {
+
+            labels.push(row.day);
+
+            tempData.push(
+                parseInt(row.temperature || 0)
+            );
+
+            signalData.push(
+                parseInt(row.signal || 0)
+            );
+
+            connData.push(
+                parseInt(row.connection || 0)
+            );
+        });
+
+        // UPDATE CHART
+
+        state.charts.alert.data.labels = labels;
+
+        state.charts.alert.data.datasets[0].data =
+            tempData;
+
+        state.charts.alert.data.datasets[1].data =
+            signalData;
+
+        state.charts.alert.data.datasets[2].data =
+            connData;
+
+        state.charts.alert.update();
+
+        // UPDATE COUNTERS
+
+        const totalTemp =
+            tempData.reduce((a,b)=>a+b,0);
+
+        const totalSignal =
+            signalData.reduce((a,b)=>a+b,0);
+
+        const totalConn =
+            connData.reduce((a,b)=>a+b,0);
+
+        document.getElementById('tempAlerts')
+            .textContent = totalTemp;
+
+        document.getElementById('signalAlerts')
+            .textContent = totalSignal;
+
+        document.getElementById('connectionAlerts')
+            .textContent = totalConn;
+
+        document.getElementById('todayAlerts')
+            .textContent =
+            totalTemp +
+            totalSignal +
+            totalConn;
+
+        // AI SCORE
+
+        calculateAIScore([
+            totalTemp,
+            totalSignal,
+            totalConn
+        ]);
+
+    } catch (e) {
+
+        console.error(
+            "Alert Chart Error:",
+            e
+        );
+    }
+}
 
         function calculateAIScore(arr) {
             const total = arr.reduce((a, b) => a + b, 0);
