@@ -350,7 +350,7 @@ $username = $_SESSION['user_name'] ?? 'User';
 
     <script>
 const CONFIG = {
-    UPDATE_INTERVAL: 5000,
+    UPDATE_INTERVAL: 30000,
     OFFLINE_THRESHOLD: 30000,
 
     // TEMPERATURE LEVELS
@@ -1162,6 +1162,40 @@ function analyzeSignal(signal) {
 
 function setOfflineUI() {
 
+    // DEVICE STATUS
+
+    document.getElementById('deviceStatus')
+        .textContent = 'Offline';
+
+    document.getElementById('deviceStatus')
+        .className =
+        'font-bold text-lg status-offline';
+
+    // DHT11 STATUS
+
+    document.getElementById('dhtStatus')
+        .textContent = 'Disconnected';
+
+    document.getElementById('dhtStatus')
+        .className =
+        'font-bold text-lg status-offline';
+
+    document.getElementById('dhtIcon')
+        .textContent = '🔴';
+
+    // LAST SEEN
+
+    document.getElementById('lastSeen')
+        .textContent = '--:--:--';
+
+    document.getElementById('dhtLastReading')
+        .textContent = '--:--:--';
+
+    document.getElementById('uptime')
+        .textContent = '--';
+
+    // TEMPERATURE
+
     document.getElementById('currentTemp')
         .textContent = '--°C';
 
@@ -1175,6 +1209,8 @@ function setOfflineUI() {
     document.getElementById('tempIcon')
         .textContent = '🔴';
 
+    // SIGNAL
+
     document.getElementById('currentSignal')
         .textContent = '--%';
 
@@ -1187,6 +1223,8 @@ function setOfflineUI() {
 
     document.getElementById('signalIcon')
         .textContent = '🔴';
+
+    // ANOMALY
 
     document.getElementById('anomalyText')
         .textContent = 'Offline';
@@ -1241,13 +1279,48 @@ async function loadAnalytics() {
         // ONLINE
 
         state.lastUpdate = createdAt;
+        // DEVICE ONLINE
 
-        document.getElementById('deviceStatus')
-            .textContent = 'Online';
+document.getElementById('deviceStatus')
+    .textContent = 'Online';
 
-        document.getElementById('deviceStatus')
-            .className =
-            'font-bold text-lg status-online';
+document.getElementById('deviceStatus')
+    .className =
+    'font-bold text-lg status-online';
+
+// DHT11 ONLINE
+
+document.getElementById('dhtStatus')
+    .textContent = 'Connected';
+
+document.getElementById('dhtStatus')
+    .className =
+    'font-bold text-lg status-online';
+
+document.getElementById('dhtIcon')
+    .textContent = '🌡️';
+
+// LAST ACTIVITY
+
+const lastTime =
+    new Date(createdAt);
+
+document.getElementById('lastSeen')
+    .textContent =
+    lastTime.toLocaleTimeString();
+
+document.getElementById('dhtLastReading')
+    .textContent =
+    lastTime.toLocaleTimeString();
+
+// UPTIME
+
+const uptimeMinutes =
+    Math.floor(diff / 60000);
+
+document.getElementById('uptime')
+    .textContent =
+    uptimeMinutes + ' min';
 
         const temp =
             safeNum(j.data.temperature);
@@ -1483,7 +1556,7 @@ async function generatePDFReport() {
         if (historyCanvas) {
 
             doc.addImage(
-                historyCanvas.toDataURL('image/png'),
+                historyCanvas.toDataURL('logo.png'),
                 'PNG',
                 15,
                 35,
