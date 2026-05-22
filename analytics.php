@@ -97,9 +97,30 @@ body {
 .sensor-status.offline {
     background-color: #ef4444;
 }
+.sensor-status.demo {
+    background-color: #f59e0b;
+    box-shadow: 0 0 5px #f59e0b;
+}
 @keyframes pulse {
     0%, 100% { opacity: 1; }
     50% { opacity: 0.5; }
+}
+.mode-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 2px 8px;
+    border-radius: 12px;
+    font-size: 10px;
+    font-weight: bold;
+}
+.mode-real {
+    background-color: #10b981;
+    color: white;
+}
+.mode-demo {
+    background-color: #f59e0b;
+    color: white;
 }
 </style>
 </head>
@@ -129,9 +150,12 @@ body {
 
     <!-- STATS CARDS -->
     <div class="grid md:grid-cols-4 gap-5 mb-6">
-        <!-- Device Status Card - Sans Last Update -->
+        <!-- Device Status Card -->
         <div class="card">
-            <h2 class="font-bold mb-4">📡 Device Status</h2>
+            <div class="flex justify-between items-start">
+                <h2 class="font-bold mb-4">📡 Device Status</h2>
+                <span id="modeBadge" class="mode-badge mode-real">🟢 REAL</span>
+            </div>
             <p class="text-gray-500 text-sm">System State</p>
             <p id="deviceStatus" class="text-2xl font-bold text-green-600">Online</p>
             
@@ -187,8 +211,7 @@ body {
         </div>
     </div>
 
-    <!-- CHARTS SECTION - NOW WITH 2 CHARTS ONLY -->
-    <!-- Chart 1: Combined Sensor History (Temperature + Humidity + Signal) -->
+    <!-- CHARTS SECTION -->
     <div class="card mb-6">
         <div class="flex justify-between items-center mb-4">
             <h2 class="font-bold text-xl">📊 Complete Sensor History</h2>
@@ -205,7 +228,6 @@ body {
         <p class="text-xs text-gray-400 text-center mt-2">📈 Temperature (Orange) • 💧 Humidity (Cyan) • 📶 Signal (Blue) • Real data • Updates every 5s</p>
     </div>
 
-    <!-- Chart 2: Alert Analysis -->
     <div class="card">
         <div class="flex justify-between items-center mb-4">
             <h2 class="font-bold text-xl">⚠️ Alert Analysis</h2>
@@ -233,6 +255,7 @@ let alertChart = null;
 let currentSensorPeriod = 'day';
 let currentAlertPeriod = 'day';
 let updateInterval = null;
+let isRealMode = true;
 
 // Configuration
 const CONFIG = {
@@ -257,7 +280,6 @@ let alertHistory = {
 // ============================================
 
 function initCharts() {
-    // Chart 1: Combined Sensor Chart (Temperature + Humidity + Signal)
     const sensorCtx = document.getElementById('sensorChart').getContext('2d');
     sensorChart = new Chart(sensorCtx, {
         type: 'line',
@@ -348,7 +370,6 @@ function initCharts() {
         }
     });
 
-    // Chart 2: Alert Analysis Chart
     const alertCtx = document.getElementById('alertChart').getContext('2d');
     alertChart = new Chart(alertCtx, {
         type: 'line',
@@ -433,21 +454,49 @@ function initCharts() {
 }
 
 // ============================================
-// UPDATE DHT11 SENSOR STATUS
+// UPDATE MODE DISPLAY
 // ============================================
 
-function updateDHT11Status(isOnline, lastDataTime = null) {
+function updateModeDisplay(isReal) {
+    const modeBadge = document.getElementById('modeBadge');
     const dhtStatusDot = document.getElementById('dhtStatus');
     const dhtStatusText = document.getElementById('dhtStatusText');
     
-    if (isOnline) {
+    if (isReal) {
+        modeBadge.className = 'mode-badge mode-real';
+        modeBadge.innerHTML = '🟢 REAL';
         dhtStatusDot.className = 'sensor-status online';
         dhtStatusText.innerHTML = 'Connected ✅';
         dhtStatusText.className = 'font-bold text-green-600';
     } else {
+        modeBadge.className = 'mode-badge mode-demo';
+        modeBadge.innerHTML = '🟡 DEMO';
+        dhtStatusDot.className = 'sensor-status demo';
+        dhtStatusText.innerHTML = 'Demo Mode';
+        dhtStatusText.className = 'font-bold text-yellow-600';
+    }
+}
+
+// ============================================
+// UPDATE DHT11 SENSOR STATUS
+// ============================================
+
+function updateDHT11Status(isOnline) {
+    const dhtStatusDot = document.getElementById('dhtStatus');
+    const dhtStatusText = document.getElementById('dhtStatusText');
+    
+    if (isOnline && isRealMode) {
+        dhtStatusDot.className = 'sensor-status online';
+        dhtStatusText.innerHTML = 'Connected ✅';
+        dhtStatusText.className = 'font-bold text-green-600';
+    } else if (!isOnline && isRealMode) {
         dhtStatusDot.className = 'sensor-status offline';
         dhtStatusText.innerHTML = 'Disconnected ❌';
         dhtStatusText.className = 'font-bold text-red-600';
+    } else {
+        dhtStatusDot.className = 'sensor-status demo';
+        dhtStatusText.innerHTML = 'Demo Mode';
+        dhtStatusText.className = 'font-bold text-yellow-600';
     }
 }
 
@@ -645,12 +694,18 @@ async function loadLatestData() {
         const result = await response.json();
         
         if (result.success && result.data) {
+            // Mode RÉEL
+            isRealMode = true;
+            updateModeDisplay(true);
+            
             const data = result.data;
             const temp = parseFloat(data.temperature);
             const humidity = parseFloat(data.humidity);
             const signal = parseFloat(data.signal_strength);
             
             updateDHT11Status(true);
+            document.getElementById('deviceStatus').innerHTML = 'Online';
+            document.getElementById('deviceStatus').className = 'text-2xl font-bold text-green-600';
             
             animateValue('currentTemp', temp.toFixed(1) + '°C');
             animateValue('currentHumidity', humidity.toFixed(1) + '%');
@@ -733,24 +788,54 @@ async function loadLatestData() {
                 updateStatus('anomalyText', 'Normal ✓', 'text-green-600');
             }
             
-            document.getElementById('deviceStatus').innerHTML = 'Online';
-            document.getElementById('deviceStatus').className = 'text-2xl font-bold text-green-600';
-            
         } else {
+            // Mode DÉMO
+            isRealMode = false;
+            updateModeDisplay(false);
             updateDHT11Status(false);
             document.getElementById('deviceStatus').innerHTML = 'Demo Mode';
             document.getElementById('deviceStatus').className = 'text-2xl font-bold text-yellow-600';
             
+            // Mettre à jour les données de démonstration
+            updateDemoData();
+            
             if (sensorChart && sensorChart.data.labels.length === 0) {
                 generateDemoSensorData('day', 24);
+            }
+            if (alertChart && alertChart.data.labels.length === 0) {
+                generateDemoAlertData('day', 24);
             }
         }
     } catch(error) {
         console.error('Error:', error);
+        isRealMode = false;
+        updateModeDisplay(false);
         updateDHT11Status(false);
-        document.getElementById('deviceStatus').innerHTML = 'Offline';
-        document.getElementById('deviceStatus').className = 'text-2xl font-bold text-red-600';
+        document.getElementById('deviceStatus').innerHTML = 'Demo Mode';
+        document.getElementById('deviceStatus').className = 'text-2xl font-bold text-yellow-600';
+        updateDemoData();
     }
+}
+
+function updateDemoData() {
+    const now = new Date();
+    const temp = 22 + Math.sin(Date.now() / 10000) * 3;
+    const humidity = 55 + Math.cos(Date.now() / 8000) * 10;
+    const signal = 75 + Math.sin(Date.now() / 15000) * 15;
+    
+    animateValue('currentTemp', temp.toFixed(1) + '°C');
+    animateValue('currentHumidity', humidity.toFixed(1) + '%');
+    animateValue('currentSignal', Math.min(100, Math.max(0, signal)).toFixed(0) + '%');
+    
+    let aiScore = 85 + Math.sin(Date.now() / 20000) * 10;
+    animateValue('aiScore', aiScore.toFixed(0) + '%');
+    document.getElementById('aiScoreBar').style.width = aiScore + '%';
+    
+    updateStatus('tempStatus', 'Demo Mode', 'text-yellow-600');
+    updateStatus('humidityStatus', 'Demo Mode', 'text-yellow-600');
+    updateStatus('signalStatus', 'Demo Mode', 'text-yellow-600');
+    updateStatus('aiHealth', 'Demo Mode', 'text-yellow-600');
+    updateStatus('anomalyText', 'Demo Mode', 'text-yellow-600');
 }
 
 function animateValue(elementId, newValue) {
@@ -807,29 +892,30 @@ async function generatePDF() {
     doc.text(`Generated: ${new Date().toLocaleString()}`, 20, 65);
     doc.text(`User: <?= $username ?>`, 20, 72);
     doc.text(`Report ID: ENV-${Date.now()}`, 20, 79);
+    doc.text(`Mode: ${isRealMode ? 'REAL (Connected)' : 'DEMO (Simulated)'}`, 20, 86);
     
     const dhtStatus = document.getElementById('dhtStatusText').innerText;
-    doc.text(`DHT11 Sensor: ${dhtStatus}`, 20, 89);
+    doc.text(`DHT11 Sensor: ${dhtStatus}`, 20, 93);
     
     doc.setDrawColor(59, 130, 246);
     doc.setLineWidth(0.5);
-    doc.line(20, 99, 190, 99);
+    doc.line(20, 103, 190, 103);
     
     doc.setTextColor(0, 0, 0);
     doc.setFontSize(16);
     doc.setFont('helvetica', 'bold');
-    doc.text('Executive Summary', 20, 113);
+    doc.text('Executive Summary', 20, 117);
     
     doc.setFontSize(10);
     doc.setFont('helvetica', 'normal');
-    doc.text(`Temperature: ${document.getElementById('currentTemp').innerText}`, 25, 128);
-    doc.text(`Humidity: ${document.getElementById('currentHumidity').innerText}`, 25, 138);
-    doc.text(`Signal: ${document.getElementById('currentSignal').innerText}`, 25, 148);
-    doc.text(`AI Score: ${document.getElementById('aiScore').innerText}`, 25, 158);
-    doc.text(`System Status: ${document.getElementById('aiHealth').innerText}`, 25, 168);
+    doc.text(`Temperature: ${document.getElementById('currentTemp').innerText}`, 25, 132);
+    doc.text(`Humidity: ${document.getElementById('currentHumidity').innerText}`, 25, 142);
+    doc.text(`Signal: ${document.getElementById('currentSignal').innerText}`, 25, 152);
+    doc.text(`AI Score: ${document.getElementById('aiScore').innerText}`, 25, 162);
+    doc.text(`System Status: ${document.getElementById('aiHealth').innerText}`, 25, 172);
     
     const alertCount = alertHistory.tempAlerts.filter(a => a > 0).length;
-    doc.text(`Total Alerts: ${alertCount}`, 25, 178);
+    doc.text(`Total Alerts: ${alertCount}`, 25, 182);
     
     const pageCount = doc.internal.getNumberOfPages();
     for(let i = 1; i <= pageCount; i++) {
@@ -851,7 +937,7 @@ async function generatePDF() {
     const filename = `ENVIRONET_Report_${new Date().toISOString().slice(0,19).replace(/:/g, '-')}.pdf`;
     doc.save(filename);
     
-    showNotification('PDF Report with Logo generated!', 'success');
+    showNotification('PDF Report generated!', 'success');
 }
 
 function showNotification(message, type) {
