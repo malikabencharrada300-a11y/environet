@@ -141,10 +141,6 @@ body {
                 <span id="dhtStatus" class="sensor-status online"></span>
                 <span id="dhtStatusText" class="font-bold text-green-600">Connected</span>
             </div>
-            
-            <!-- Last Update -->
-            <p class="text-gray-500 text-sm mt-3">⏱ Last Update</p>
-            <p id="lastUpdate" class="font-bold text-sm">--:--:--</p>
         </div>
 
         <div class="card">
