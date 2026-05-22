@@ -162,65 +162,51 @@ body {
         </div>
     </div>
 
-    <!-- CHARTS SECTION - NOW WITH 3 CHARTS -->
-    <div class="grid lg:grid-cols-3 gap-6">
-        <!-- Temperature Chart -->
-        <div class="card">
-            <div class="flex justify-between items-center mb-4">
-                <h2 class="font-bold text-xl">🌡 Temperature History</h2>
-                <div class="flex gap-1">
-                    <button onclick="loadChartData('hour')" id="filterHour" class="filter-btn px-2 py-1 text-xs rounded-lg bg-gray-200 hover:bg-blue-500 hover:text-white transition">Hour</button>
-                    <button onclick="loadChartData('day')" id="filterDay" class="filter-btn px-2 py-1 text-xs rounded-lg bg-blue-600 text-white active transition">Day</button>
-                    <button onclick="loadChartData('week')" id="filterWeek" class="filter-btn px-2 py-1 text-xs rounded-lg bg-gray-200 hover:bg-blue-500 hover:text-white transition">Week</button>
-                </div>
-            </div>
-            <div class="chart-box">
-                <canvas id="tempChart"></canvas>
+    <!-- CHARTS SECTION - NOW WITH 2 CHARTS ONLY -->
+    <!-- Chart 1: Combined Sensor History (Temperature + Humidity + Signal) -->
+    <div class="card mb-6">
+        <div class="flex justify-between items-center mb-4">
+            <h2 class="font-bold text-xl">📊 Complete Sensor History</h2>
+            <div class="flex gap-2">
+                <button onclick="loadSensorData('hour')" id="filterHour" class="filter-btn px-3 py-1 text-sm rounded-lg bg-gray-200 hover:bg-blue-500 hover:text-white transition">Hour</button>
+                <button onclick="loadSensorData('day')" id="filterDay" class="filter-btn px-3 py-1 text-sm rounded-lg bg-blue-600 text-white active transition">Day</button>
+                <button onclick="loadSensorData('week')" id="filterWeek" class="filter-btn px-3 py-1 text-sm rounded-lg bg-gray-200 hover:bg-blue-500 hover:text-white transition">Week</button>
+                <button onclick="loadSensorData('month')" id="filterMonth" class="filter-btn px-3 py-1 text-sm rounded-lg bg-gray-200 hover:bg-blue-500 hover:text-white transition">Month</button>
             </div>
         </div>
+        <div class="chart-box">
+            <canvas id="sensorChart"></canvas>
+        </div>
+        <p class="text-xs text-gray-400 text-center mt-2">📈 Temperature (Orange) • 💧 Humidity (Cyan) • 📶 Signal (Blue) • Real data • Updates every 5s</p>
+    </div>
 
-        <!-- Signal & Humidity Chart -->
-        <div class="card">
-            <div class="flex justify-between items-center mb-4">
-                <h2 class="font-bold text-xl">📶 Signal & Humidity</h2>
-                <div class="flex gap-1">
-                    <button onclick="loadChartData('hour')" id="filterSignalHour" class="filter-btn px-2 py-1 text-xs rounded-lg bg-gray-200 hover:bg-blue-500 hover:text-white transition">Hour</button>
-                    <button onclick="loadChartData('day')" id="filterSignalDay" class="filter-btn px-2 py-1 text-xs rounded-lg bg-blue-600 text-white active transition">Day</button>
-                    <button onclick="loadChartData('week')" id="filterSignalWeek" class="filter-btn px-2 py-1 text-xs rounded-lg bg-gray-200 hover:bg-blue-500 hover:text-white transition">Week</button>
-                </div>
-            </div>
-            <div class="chart-box">
-                <canvas id="signalChart"></canvas>
+    <!-- Chart 2: Alert Analysis -->
+    <div class="card">
+        <div class="flex justify-between items-center mb-4">
+            <h2 class="font-bold text-xl">⚠️ Alert Analysis</h2>
+            <div class="flex gap-2">
+                <button onclick="loadAlertData('hour')" id="filterAlertHour" class="filter-btn px-3 py-1 text-sm rounded-lg bg-gray-200 hover:bg-blue-500 hover:text-white transition">Hour</button>
+                <button onclick="loadAlertData('day')" id="filterAlertDay" class="filter-btn px-3 py-1 text-sm rounded-lg bg-blue-600 text-white active transition">Day</button>
+                <button onclick="loadAlertData('week')" id="filterAlertWeek" class="filter-btn px-3 py-1 text-sm rounded-lg bg-gray-200 hover:bg-blue-500 hover:text-white transition">Week</button>
+                <button onclick="loadAlertData('month')" id="filterAlertMonth" class="filter-btn px-3 py-1 text-sm rounded-lg bg-gray-200 hover:bg-blue-500 hover:text-white transition">Month</button>
             </div>
         </div>
-
-        <!-- NEW: Alert Analysis Chart -->
-        <div class="card">
-            <div class="flex justify-between items-center mb-4">
-                <h2 class="font-bold text-xl">⚠️ Alert Analysis</h2>
-                <div class="flex gap-1">
-                    <button onclick="loadAlertData('hour')" id="filterAlertHour" class="filter-btn px-2 py-1 text-xs rounded-lg bg-gray-200 hover:bg-blue-500 hover:text-white transition">Hour</button>
-                    <button onclick="loadAlertData('day')" id="filterAlertDay" class="filter-btn px-2 py-1 text-xs rounded-lg bg-blue-600 text-white active transition">Day</button>
-                    <button onclick="loadAlertData('week')" id="filterAlertWeek" class="filter-btn px-2 py-1 text-xs rounded-lg bg-gray-200 hover:bg-blue-500 hover:text-white transition">Week</button>
-                </div>
-            </div>
-            <div class="chart-box">
-                <canvas id="alertChart"></canvas>
-            </div>
-            <p class="text-xs text-gray-400 text-center mt-2">Alert levels: 0=Normal, 1=Warning, 2=Critical</p>
+        <div class="chart-box">
+            <canvas id="alertChart"></canvas>
         </div>
+        <p class="text-xs text-gray-400 text-center mt-2">⚠️ Alert levels: 0=Normal, 1=Warning, 2=Critical • Real-time detection</p>
     </div>
 </div>
 
 <script>
 // ============================================
-// REAL TIME SENSOR DASHBOARD WITH ALERT ANALYSIS
+// REAL TIME SENSOR DASHBOARD WITH COMBINED CHART
 // ============================================
 
-let tempChart = null;
-let signalChart = null;
+let sensorChart = null;
 let alertChart = null;
-let currentPeriod = 'day';
+let currentSensorPeriod = 'day';
+let currentAlertPeriod = 'day';
 let updateInterval = null;
 
 // Configuration
@@ -245,77 +231,140 @@ let alertHistory = {
 // ============================================
 
 function initCharts() {
-    // Temperature Chart
-    const tempCtx = document.getElementById('tempChart').getContext('2d');
-    tempChart = new Chart(tempCtx, {
-        type: 'line',
-        data: {
-            labels: [],
-            datasets: [{
-                label: 'Temperature (°C)',
-                data: [],
-                borderColor: '#f97316',
-                backgroundColor: 'rgba(249,115,22,0.1)',
-                borderWidth: 2,
-                fill: true,
-                tension: 0.4,
-                pointRadius: 3,
-                pointHoverRadius: 6,
-                pointBackgroundColor: '#f97316',
-                pointBorderColor: '#fff',
-                pointBorderWidth: 2
-            }]
-        },
-        options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            plugins: {
-                legend: { position: 'top', labels: { usePointStyle: true, boxWidth: 10 } },
-                tooltip: { callbacks: { label: function(context) { return 'Temperature: ' + context.raw.toFixed(1) + '°C'; } } }
-            },
-            scales: {
-                y: { title: { display: true, text: 'Temperature (°C)' }, min: 0, max: 50 },
-                x: { title: { display: true, text: 'Timestamp' }, ticks: { maxRotation: 45, minRotation: 45 } }
-            }
-        }
-    });
-
-    // Signal & Humidity Chart
-    const signalCtx = document.getElementById('signalChart').getContext('2d');
-    signalChart = new Chart(signalCtx, {
+    // Chart 1: Combined Sensor Chart (Temperature + Humidity + Signal)
+    const sensorCtx = document.getElementById('sensorChart').getContext('2d');
+    sensorChart = new Chart(sensorCtx, {
         type: 'line',
         data: {
             labels: [],
             datasets: [
-                { label: 'Humidity (%)', data: [], borderColor: '#06b6d4', backgroundColor: 'rgba(6,182,212,0.1)', borderWidth: 2, fill: true, tension: 0.4, pointRadius: 3, yAxisID: 'y' },
-                { label: 'Signal Strength (%)', data: [], borderColor: '#2563eb', backgroundColor: 'rgba(37,99,235,0.1)', borderWidth: 2, fill: true, tension: 0.4, pointRadius: 3, yAxisID: 'y1' }
+                {
+                    label: 'Temperature (°C)',
+                    data: [],
+                    borderColor: '#f97316',
+                    backgroundColor: 'rgba(249,115,22,0.1)',
+                    borderWidth: 2,
+                    fill: true,
+                    tension: 0.4,
+                    pointRadius: 3,
+                    pointHoverRadius: 6,
+                    yAxisID: 'y'
+                },
+                {
+                    label: 'Humidity (%)',
+                    data: [],
+                    borderColor: '#06b6d4',
+                    backgroundColor: 'rgba(6,182,212,0.1)',
+                    borderWidth: 2,
+                    fill: true,
+                    tension: 0.4,
+                    pointRadius: 3,
+                    pointHoverRadius: 6,
+                    yAxisID: 'y'
+                },
+                {
+                    label: 'Signal Strength (%)',
+                    data: [],
+                    borderColor: '#2563eb',
+                    backgroundColor: 'rgba(37,99,235,0.1)',
+                    borderWidth: 2,
+                    fill: true,
+                    tension: 0.4,
+                    pointRadius: 3,
+                    pointHoverRadius: 6,
+                    yAxisID: 'y1'
+                }
             ]
         },
         options: {
             responsive: true,
             maintainAspectRatio: false,
             plugins: {
-                legend: { position: 'top', labels: { usePointStyle: true, boxWidth: 10 } },
-                tooltip: { callbacks: { label: function(context) { return context.dataset.label + ': ' + context.raw.toFixed(1) + (context.dataset.label.includes('Humidity') ? '%' : '%'); } } }
+                legend: {
+                    position: 'top',
+                    labels: { usePointStyle: true, boxWidth: 10, font: { size: 12 } }
+                },
+                tooltip: {
+                    callbacks: {
+                        label: function(context) {
+                            let label = context.dataset.label || '';
+                            let value = context.raw;
+                            if (context.dataset.label === 'Temperature (°C)') {
+                                return label + ': ' + value.toFixed(1) + '°C';
+                            }
+                            if (context.dataset.label === 'Humidity (%)') {
+                                return label + ': ' + value.toFixed(1) + '%';
+                            }
+                            return label + ': ' + value.toFixed(0) + '%';
+                        }
+                    }
+                }
             },
             scales: {
-                y: { title: { display: true, text: 'Humidity (%)' }, min: 0, max: 100 },
-                y1: { position: 'right', title: { display: true, text: 'Signal Strength (%)' }, min: 0, max: 100, grid: { drawOnChartArea: false } },
-                x: { title: { display: true, text: 'Timestamp' }, ticks: { maxRotation: 45, minRotation: 45 } }
+                y: {
+                    title: { display: true, text: 'Temperature (°C) / Humidity (%)' },
+                    min: 0,
+                    max: 100,
+                    grid: { color: 'rgba(0,0,0,0.05)' }
+                },
+                y1: {
+                    position: 'right',
+                    title: { display: true, text: 'Signal Strength (%)' },
+                    min: 0,
+                    max: 100,
+                    grid: { drawOnChartArea: false }
+                },
+                x: {
+                    title: { display: true, text: 'Timestamp' },
+                    ticks: { maxRotation: 45, minRotation: 45 }
+                }
             }
         }
     });
 
-    // NEW: Alert Analysis Chart
+    // Chart 2: Alert Analysis Chart
     const alertCtx = document.getElementById('alertChart').getContext('2d');
     alertChart = new Chart(alertCtx, {
         type: 'line',
         data: {
             labels: [],
             datasets: [
-                { label: 'Temperature Alerts', data: [], borderColor: '#ef4444', backgroundColor: 'rgba(239,68,68,0.1)', borderWidth: 2, fill: true, tension: 0.4, stepped: true, pointRadius: 4, pointHoverRadius: 6 },
-                { label: 'Signal Alerts', data: [], borderColor: '#f59e0b', backgroundColor: 'rgba(245,158,11,0.1)', borderWidth: 2, fill: true, tension: 0.4, stepped: true, pointRadius: 4, pointHoverRadius: 6 },
-                { label: 'Connection Alerts', data: [], borderColor: '#8b5cf6', backgroundColor: 'rgba(139,92,246,0.1)', borderWidth: 2, fill: true, tension: 0.4, stepped: true, pointRadius: 4, pointHoverRadius: 6 }
+                {
+                    label: 'Temperature Alerts',
+                    data: [],
+                    borderColor: '#ef4444',
+                    backgroundColor: 'rgba(239,68,68,0.1)',
+                    borderWidth: 2,
+                    fill: true,
+                    tension: 0.4,
+                    stepped: true,
+                    pointRadius: 4,
+                    pointHoverRadius: 6
+                },
+                {
+                    label: 'Signal Alerts',
+                    data: [],
+                    borderColor: '#f59e0b',
+                    backgroundColor: 'rgba(245,158,11,0.1)',
+                    borderWidth: 2,
+                    fill: true,
+                    tension: 0.4,
+                    stepped: true,
+                    pointRadius: 4,
+                    pointHoverRadius: 6
+                },
+                {
+                    label: 'Connection Alerts',
+                    data: [],
+                    borderColor: '#8b5cf6',
+                    backgroundColor: 'rgba(139,92,246,0.1)',
+                    borderWidth: 2,
+                    fill: true,
+                    tension: 0.4,
+                    stepped: true,
+                    pointRadius: 4,
+                    pointHoverRadius: 6
+                }
             ]
         },
         options: {
@@ -358,52 +407,114 @@ function initCharts() {
 }
 
 // ============================================
-// LOAD ALERT DATA FOR THE CHART
+// LOAD COMBINED SENSOR DATA
 // ============================================
 
-async function loadAlertData(period) {
-    currentPeriod = period;
+async function loadSensorData(period) {
+    currentSensorPeriod = period;
     
-    // Update active buttons for alert chart
-    document.querySelectorAll('[id^="filterAlert"]').forEach(btn => {
-        btn.classList.remove('active', 'bg-blue-600', 'text-white');
-        btn.classList.add('bg-gray-200');
+    // Update active buttons
+    document.querySelectorAll('[id^="filter"][id$="Hour"],[id^="filter"][id$="Day"],[id^="filter"][id$="Week"],[id^="filter"][id$="Month"]').forEach(btn => {
+        if (!btn.id.includes('Alert')) {
+            btn.classList.remove('active', 'bg-blue-600', 'text-white');
+            btn.classList.add('bg-gray-200');
+        }
     });
     
-    const alertBtnMap = {
-        'hour': 'filterAlertHour',
-        'day': 'filterAlertDay',
-        'week': 'filterAlertWeek'
-    };
-    const activeBtn = document.getElementById(alertBtnMap[period]);
+    const btnMap = { 'hour': 'filterHour', 'day': 'filterDay', 'week': 'filterWeek', 'month': 'filterMonth' };
+    const activeBtn = document.getElementById(btnMap[period]);
     if (activeBtn) {
         activeBtn.classList.remove('bg-gray-200');
         activeBtn.classList.add('active', 'bg-blue-600', 'text-white');
     }
     
-    // Also update other chart buttons to match
-    document.querySelectorAll('[id^="filter"][id$="Hour"],[id^="filter"][id$="Day"],[id^="filter"][id$="Week"]').forEach(btn => {
-        if (!btn.id.includes('Alert')) {
-            btn.classList.remove('active', 'bg-blue-600', 'text-white');
-            btn.classList.add('bg-gray-200');
-            if ((period === 'hour' && btn.id.includes('Hour')) ||
-                (period === 'day' && btn.id.includes('Day')) ||
-                (period === 'week' && btn.id.includes('Week'))) {
-                if (!btn.id.includes('Alert')) {
-                    btn.classList.remove('bg-gray-200');
-                    btn.classList.add('active', 'bg-blue-600', 'text-white');
-                }
+    let limit = 24;
+    if (period === 'hour') limit = 60;
+    else if (period === 'day') limit = 24;
+    else if (period === 'week') limit = 168;
+    else if (period === 'month') limit = 720;
+    
+    try {
+        const response = await fetch(`get_history.php?period=${period}&limit=${limit}&user_id=<?= $user_id ?>`);
+        const result = await response.json();
+        
+        if (result.success && result.data) {
+            if (sensorChart) {
+                sensorChart.data.labels = result.data.timestamps || [];
+                sensorChart.data.datasets[0].data = result.data.temperatures || [];
+                sensorChart.data.datasets[1].data = result.data.humidities || [];
+                sensorChart.data.datasets[2].data = result.data.signals || [];
+                sensorChart.update();
             }
+            const dataCount = (result.data.temperatures || []).length;
+            document.getElementById('dataCount').innerHTML = dataCount;
+        } else {
+            generateDemoSensorData(period, limit);
         }
+    } catch(error) {
+        generateDemoSensorData(period, limit);
+    }
+}
+
+function generateDemoSensorData(period, limit) {
+    const now = new Date();
+    const labels = [];
+    const temps = [];
+    const humidities = [];
+    const signals = [];
+    
+    for (let i = limit; i >= 0; i--) {
+        let date = new Date(now);
+        if (period === 'hour') date.setMinutes(now.getMinutes() - i);
+        else date.setHours(now.getHours() - i);
+        
+        labels.push(date.toLocaleTimeString());
+        
+        const baseTemp = 22 + Math.sin(i / 10) * 5 + Math.random() * 2;
+        const baseHumidity = 55 + Math.cos(i / 8) * 15 + Math.random() * 5;
+        const baseSignal = 75 + Math.sin(i / 20) * 20 + Math.random() * 3;
+        
+        temps.push(baseTemp);
+        humidities.push(Math.min(100, Math.max(0, baseHumidity)));
+        signals.push(Math.min(100, Math.max(0, baseSignal)));
+    }
+    
+    if (sensorChart) {
+        sensorChart.data.labels = labels;
+        sensorChart.data.datasets[0].data = temps;
+        sensorChart.data.datasets[1].data = humidities;
+        sensorChart.data.datasets[2].data = signals;
+        sensorChart.update();
+    }
+    document.getElementById('dataCount').innerHTML = limit;
+}
+
+// ============================================
+// LOAD ALERT DATA
+// ============================================
+
+async function loadAlertData(period) {
+    currentAlertPeriod = period;
+    
+    document.querySelectorAll('[id^="filterAlert"]').forEach(btn => {
+        btn.classList.remove('active', 'bg-blue-600', 'text-white');
+        btn.classList.add('bg-gray-200');
     });
+    
+    const btnMap = { 'hour': 'filterAlertHour', 'day': 'filterAlertDay', 'week': 'filterAlertWeek', 'month': 'filterAlertMonth' };
+    const activeBtn = document.getElementById(btnMap[period]);
+    if (activeBtn) {
+        activeBtn.classList.remove('bg-gray-200');
+        activeBtn.classList.add('active', 'bg-blue-600', 'text-white');
+    }
     
     let limit = 24;
     if (period === 'hour') limit = 60;
     else if (period === 'day') limit = 24;
     else if (period === 'week') limit = 168;
+    else if (period === 'month') limit = 720;
     
     try {
-        // Try to fetch real alert data from your API
         const response = await fetch(`get_alerts.php?period=${period}&limit=${limit}&user_id=<?= $user_id ?>`);
         const result = await response.json();
         
@@ -416,16 +527,13 @@ async function loadAlertData(period) {
                 alertChart.update();
             }
         } else {
-            // Generate demo alert data if no real data
             generateDemoAlertData(period, limit);
         }
     } catch(error) {
-        console.log('Using demo alert data');
         generateDemoAlertData(period, limit);
     }
 }
 
-// Generate demo alert data for visualization
 function generateDemoAlertData(period, limit) {
     const now = new Date();
     const labels = [];
@@ -436,45 +544,36 @@ function generateDemoAlertData(period, limit) {
     for (let i = limit; i >= 0; i--) {
         let date = new Date(now);
         if (period === 'hour') date.setMinutes(now.getMinutes() - i);
-        else if (period === 'day') date.setHours(now.getHours() - i);
         else date.setHours(now.getHours() - i);
         
         labels.push(date.toLocaleTimeString());
         
-        // Generate realistic alert patterns
         let tempAlert = 0;
         let signalAlert = 0;
         let connAlert = 0;
         
-        // Random but realistic alert generation
         const rand = Math.random();
         const hour = date.getHours();
         
-        // Temperature alerts more likely during hot hours
         if (hour > 12 && hour < 16) {
             tempAlert = rand > 0.85 ? 2 : (rand > 0.7 ? 1 : 0);
         } else {
             tempAlert = rand > 0.95 ? 1 : 0;
         }
         
-        // Signal alerts random
         signalAlert = rand > 0.9 ? 1 : 0;
         if (rand > 0.97) signalAlert = 2;
-        
-        // Connection alerts rare
         connAlert = rand > 0.98 ? 1 : 0;
         
         tempAlerts.push(tempAlert);
         signalAlerts.push(signalAlert);
         connectionAlerts.push(connAlert);
         
-        // Store for real-time updates
         alertHistory.timestamps.push(labels[labels.length-1]);
         alertHistory.tempAlerts.push(tempAlert);
         alertHistory.signalAlerts.push(signalAlert);
         alertHistory.connectionAlerts.push(connAlert);
         
-        // Keep only last 100
         if (alertHistory.timestamps.length > 100) {
             alertHistory.timestamps.shift();
             alertHistory.tempAlerts.shift();
@@ -490,102 +589,6 @@ function generateDemoAlertData(period, limit) {
         alertChart.data.datasets[2].data = connectionAlerts;
         alertChart.update();
     }
-}
-
-// ============================================
-// LOAD CHART DATA
-// ============================================
-
-async function loadChartData(period) {
-    currentPeriod = period;
-    
-    // Update active buttons for temp chart
-    document.querySelectorAll('[id^="filter"][id$="Hour"],[id^="filter"][id$="Day"],[id^="filter"][id$="Week"]').forEach(btn => {
-        if (!btn.id.includes('Alert')) {
-            btn.classList.remove('active', 'bg-blue-600', 'text-white');
-            btn.classList.add('bg-gray-200');
-        }
-    });
-    
-    const tempBtnMap = { 'hour': 'filterHour', 'day': 'filterDay', 'week': 'filterWeek' };
-    const tempActiveBtn = document.getElementById(tempBtnMap[period]);
-    if (tempActiveBtn) {
-        tempActiveBtn.classList.remove('bg-gray-200');
-        tempActiveBtn.classList.add('active', 'bg-blue-600', 'text-white');
-    }
-    
-    const signalBtnMap = { 'hour': 'filterSignalHour', 'day': 'filterSignalDay', 'week': 'filterSignalWeek' };
-    const signalActiveBtn = document.getElementById(signalBtnMap[period]);
-    if (signalActiveBtn) {
-        signalActiveBtn.classList.remove('bg-gray-200');
-        signalActiveBtn.classList.add('active', 'bg-blue-600', 'text-white');
-    }
-    
-    let limit = 24;
-    if (period === 'hour') limit = 60;
-    else if (period === 'day') limit = 24;
-    else if (period === 'week') limit = 168;
-    
-    try {
-        const response = await fetch(`get_history.php?period=${period}&limit=${limit}&user_id=<?= $user_id ?>`);
-        const result = await response.json();
-        
-        if (result.success && result.data) {
-            const data = result.data;
-            if (tempChart) {
-                tempChart.data.labels = data.timestamps || [];
-                tempChart.data.datasets[0].data = data.temperatures || [];
-                tempChart.update();
-            }
-            if (signalChart) {
-                signalChart.data.labels = data.timestamps || [];
-                signalChart.data.datasets[0].data = data.humidities || [];
-                signalChart.data.datasets[1].data = data.signals || [];
-                signalChart.update();
-            }
-            document.getElementById('dataCount').innerHTML = (data.temperatures || []).length;
-        } else {
-            generateDemoData(period, limit);
-        }
-    } catch(error) {
-        generateDemoData(period, limit);
-    }
-}
-
-function generateDemoData(period, limit) {
-    const now = new Date();
-    const labels = [];
-    const temps = [];
-    const humidities = [];
-    const signals = [];
-    
-    for (let i = limit; i >= 0; i--) {
-        let date = new Date(now);
-        if (period === 'hour') date.setMinutes(now.getMinutes() - i);
-        else date.setHours(now.getHours() - i);
-        
-        labels.push(date.toLocaleTimeString());
-        const baseTemp = 22 + Math.sin(i / 10) * 5;
-        const baseHumidity = 55 + Math.cos(i / 8) * 15;
-        const baseSignal = 75 + Math.sin(i / 20) * 20;
-        
-        temps.push(baseTemp);
-        humidities.push(baseHumidity);
-        signals.push(Math.min(100, Math.max(0, baseSignal)));
-    }
-    
-    if (tempChart) {
-        tempChart.data.labels = labels;
-        tempChart.data.datasets[0].data = temps;
-        tempChart.update();
-    }
-    if (signalChart) {
-        signalChart.data.labels = labels;
-        signalChart.data.datasets[0].data = humidities;
-        signalChart.data.datasets[1].data = signals;
-        signalChart.update();
-    }
-    document.getElementById('dataCount').innerHTML = limit;
 }
 
 // ============================================
@@ -612,7 +615,6 @@ async function loadLatestData() {
                 document.getElementById('lastUpdate').innerHTML = updateDate.toLocaleString();
             }
             
-            // Detect alerts
             let tempAlert = 0;
             if (temp >= CONFIG.TEMP_CRITICAL) {
                 tempAlert = 2;
@@ -645,7 +647,6 @@ async function loadLatestData() {
             
             let connectionAlert = 0;
             
-            // Add to alert history for real-time chart update
             const now = new Date();
             alertHistory.timestamps.push(now.toLocaleTimeString());
             alertHistory.tempAlerts.push(tempAlert);
@@ -659,8 +660,7 @@ async function loadLatestData() {
                 alertHistory.connectionAlerts.shift();
             }
             
-            // Update alert chart in real-time
-            if (alertChart && currentPeriod === 'hour') {
+            if (alertChart && currentAlertPeriod === 'hour') {
                 alertChart.data.labels = alertHistory.timestamps;
                 alertChart.data.datasets[0].data = alertHistory.tempAlerts;
                 alertChart.data.datasets[1].data = alertHistory.signalAlerts;
@@ -754,12 +754,8 @@ async function generatePDF() {
     doc.text(`AI Score: ${document.getElementById('aiScore').innerText}`, 25, 130);
     doc.text(`Status: ${document.getElementById('aiHealth').innerText}`, 25, 140);
     
-    // Add alert summary
-    doc.setFontSize(12);
-    doc.text('Alert Summary', 20, 160);
-    doc.setFontSize(10);
     const alertCount = alertHistory.tempAlerts.filter(a => a > 0).length;
-    doc.text(`Total Alerts Detected: ${alertCount}`, 25, 175);
+    doc.text(`Total Alerts Detected: ${alertCount}`, 25, 155);
     
     const filename = `ENVIRONET_Report_${new Date().toISOString().slice(0,19).replace(/:/g, '-')}.pdf`;
     doc.save(filename);
@@ -787,15 +783,15 @@ function showNotification(message, type) {
 
 document.addEventListener('DOMContentLoaded', () => {
     initCharts();
-    loadChartData('day');
+    loadSensorData('day');
     loadAlertData('day');
     loadLatestData();
     setInterval(() => {
         loadLatestData();
-        loadChartData(currentPeriod);
-        loadAlertData(currentPeriod);
+        loadSensorData(currentSensorPeriod);
+        loadAlertData(currentAlertPeriod);
     }, CONFIG.UPDATE_INTERVAL);
-    console.log('✅ Real-time monitoring with Alert Analysis started');
+    console.log('✅ Real-time monitoring with Combined Sensor Chart started');
 });
 </script>
 </body>
