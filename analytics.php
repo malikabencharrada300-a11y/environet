@@ -349,191 +349,316 @@ $username = $_SESSION['user_name'] ?? 'User';
     </div>
 
     <script>
-        const CONFIG = {
-            UPDATE_INTERVAL: 5000,
-            OFFLINE_THRESHOLD: 30000,
-            TEMP_CRITICAL: 28,
-            TEMP_WARNING: 24,
-            SIGNAL_CRITICAL: 30,
-            SIGNAL_WARNING: 50,
-            MAX_DATA_POINTS: 50
-        };
+const CONFIG = {
+    UPDATE_INTERVAL: 5000,
+    OFFLINE_THRESHOLD: 30000,
 
-        const state = {
-            charts: {},
-            lastUpdate: Date.now(),
-            currentPeriod: '24h',
-            temperatureHistory: [],
-            signalHistory: [],
-            anomalyCount: 0
-        };
+    // TEMPERATURE LEVELS
+    TEMP_NORMAL_MIN: 18,
+    TEMP_NORMAL_MAX: 24,
 
-        function safeNum(v) { const n = parseFloat(v); return isNaN(n) ? 0 : n; }
+    TEMP_WARNING_MIN: 24,
+    TEMP_WARNING_MAX: 28,
 
-        // ============================================
-        // INITIALIZE ALL CHARTS
-        // ============================================
-        function initCharts() {
-            // Mini temperature chart
-            state.charts.temp = new Chart(document.getElementById('tempTrendChart'), {
-                type: 'line',
-                data: { labels: [], datasets: [{ data: [], borderColor: '#f97316', backgroundColor: 'rgba(249,115,22,0.1)', fill: true, tension: 0.4, borderWidth: 2.5, pointRadius: 3, pointBackgroundColor: '#f97316' }] },
-                options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: false, grid: { color: 'rgba(0,0,0,0.05)' } }, x: { grid: { display: false } } } }
-            });
+    TEMP_CRITICAL: 28,
 
-            // Mini signal chart
-            state.charts.signal = new Chart(document.getElementById('signalTrendChart'), {
-                type: 'line',
-                data: { labels: [], datasets: [{ data: [], borderColor: '#3b82f6', backgroundColor: 'rgba(59,130,246,0.1)', fill: true, tension: 0.4, borderWidth: 2.5, pointRadius: 3, pointBackgroundColor: '#3b82f6' }] },
-                options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: false, grid: { color: 'rgba(0,0,0,0.05)' } }, x: { grid: { display: false } } } }
-            });
+    SIGNAL_CRITICAL: 30,
+    SIGNAL_WARNING: 50,
 
-            // History chart (dual axis)
-            state.charts.history = new Chart(document.getElementById('historyChart'), {
-                type: 'line',
-                data: { labels: [], datasets: [
-                    { label: 'Temperature °C', data: [], borderColor: '#f59e0b', backgroundColor: 'rgba(245,158,11,0.1)', yAxisID: 'y', tension: 0.4, fill: true, borderWidth: 3, pointRadius: 3 },
-                    { label: 'Signal %', data: [], borderColor: '#3b82f6', backgroundColor: 'rgba(59,130,246,0.1)', yAxisID: 'y1', tension: 0.4, fill: true, borderWidth: 3, pointRadius: 3 }
-                ]},
-                options: {
-                    responsive: true, maintainAspectRatio: false, interaction: { mode: 'index', intersect: false },
-                    plugins: { zoom: { zoom: { wheel: { enabled: true }, pinch: { enabled: true }, mode: 'x' }, pan: { enabled: true, mode: 'x' } } },
-                    scales: {
-                        y: { position: 'left', title: { display: true, text: 'Temperature (°C)', color: '#F59E0B' }, grid: { color: 'rgba(0,0,0,0.05)' } },
-                        y1: { position: 'right', grid: { drawOnChartArea: false }, title: { display: true, text: 'Signal (%)', color: '#3B82F6' } },
-                        x: { grid: { display: false } }
-                    }
-                }
-            });
+    MAX_DATA_POINTS: 50
+};
 
-            // ============================================
-            // ALERT CHART - 3 DISTINCT CURVES
-            // Curve 1: Temperature Alerts (Red)
-            // Curve 2: Signal Alerts (Orange)
-            // Curve 3: Connection Alerts (Blue)
-            // ============================================
-            state.charts.alert = new Chart(document.getElementById('alertChart'), {
-                type: 'line',
-                data: {
-                    labels: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
-                    datasets: [
-                        {
-                            label: '🌡️ Temperature Alerts',
-                            data: [3, 5, 2, 7, 4, 6, 8],
-                            borderColor: '#EF4444',
-                            backgroundColor: 'rgba(239, 68, 68, 0.08)',
-                            fill: true,
-                            tension: 0.4,
-                            borderWidth: 3,
-                            pointRadius: 5,
-                            pointBackgroundColor: '#EF4444',
-                            pointBorderColor: '#FFFFFF',
-                            pointBorderWidth: 2,
-                            pointHoverRadius: 7
-                        },
-                        {
-                            label: '📶 Signal Alerts',
-                            data: [1, 3, 4, 2, 5, 3, 4],
-                            borderColor: '#F59E0B',
-                            backgroundColor: 'rgba(245, 158, 11, 0.08)',
-                            fill: true,
-                            tension: 0.4,
-                            borderWidth: 3,
-                            pointRadius: 5,
-                            pointBackgroundColor: '#F59E0B',
-                            pointBorderColor: '#FFFFFF',
-                            pointBorderWidth: 2,
-                            pointHoverRadius: 7
-                        },
-                        {
-                            label: '🔌 Connection Alerts',
-                            data: [2, 1, 3, 1, 2, 4, 3],
-                            borderColor: '#3B82F6',
-                            backgroundColor: 'rgba(59, 130, 246, 0.08)',
-                            fill: true,
-                            tension: 0.4,
-                            borderWidth: 3,
-                            pointRadius: 5,
-                            pointBackgroundColor: '#3B82F6',
-                            pointBorderColor: '#FFFFFF',
-                            pointBorderWidth: 2,
-                            pointHoverRadius: 7
-                        }
-                    ]
+const state = {
+    charts: {},
+    lastUpdate: Date.now(),
+    currentPeriod: '24h',
+    temperatureHistory: [],
+    signalHistory: [],
+    anomalyCount: 0
+};
+
+function safeNum(v) {
+    const n = parseFloat(v);
+    return isNaN(n) ? 0 : n;
+}
+
+// ============================================
+// INITIALIZE CHARTS
+// ============================================
+
+function initCharts() {
+
+    // TEMP MINI CHART
+
+    state.charts.temp = new Chart(
+        document.getElementById('tempTrendChart'),
+        {
+            type: 'line',
+            data: {
+                labels: [],
+                datasets: [{
+                    data: [],
+                    borderColor: '#f97316',
+                    backgroundColor: 'rgba(249,115,22,0.1)',
+                    fill: true,
+                    tension: 0.4,
+                    borderWidth: 2.5,
+                    pointRadius: 3,
+                    pointBackgroundColor: '#f97316'
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { display: false }
                 },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    interaction: { mode: 'index', intersect: false },
-                    animation: { duration: 1000, easing: 'easeInOutQuart' },
-                    plugins: {
-                        legend: {
-                            display: true,
-                            position: 'top',
-                            labels: {
-                                usePointStyle: true,
-                                pointStyleWidth: 12,
-                                padding: 15,
-                                font: { size: 12, weight: 'bold' },
-                                generateLabels: function(chart) {
-                                    const datasets = chart.data.datasets;
-                                    return datasets.map((ds, i) => ({
-                                        text: ds.label,
-                                        fillStyle: ds.borderColor,
-                                        strokeStyle: ds.borderColor,
-                                        lineWidth: 3,
-                                        hidden: false,
-                                        index: i,
-                                        pointStyle: 'circle',
-                                        pointStyleWidth: 10
-                                    }));
-                                }
-                            }
-                        },
-                        tooltip: {
-                            mode: 'index',
-                            intersect: false,
-                            backgroundColor: 'rgba(0,0,0,0.85)',
-                            padding: 12,
-                            cornerRadius: 8,
-                            callbacks: {
-                                label: function(ctx) {
-                                    return ctx.dataset.label + ': ' + ctx.parsed.y + ' alerts';
-                                }
-                            }
+                scales: {
+                    y: {
+                        beginAtZero: false,
+                        grid: {
+                            color: 'rgba(0,0,0,0.05)'
                         }
                     },
-                    scales: {
-                        y: {
-                            beginAtZero: true,
-                            title: { display: true, text: 'Number of Alerts', font: { weight: 'bold', size: 13 } },
-                            grid: { color: 'rgba(0,0,0,0.05)', drawBorder: false },
-                            ticks: { stepSize: 1, font: { size: 11 } }
-                        },
-                        x: {
-                            title: { display: true, text: 'Days of the Week', font: { weight: 'bold', size: 13 } },
-                            grid: { display: false },
-                            ticks: { font: { size: 11 } }
-                        }
+                    x: {
+                        grid: { display: false }
                     }
                 }
-            });
-
-            // Prediction chart
-            state.charts.predict = new Chart(document.getElementById('predictChart'), {
-                type: 'line',
-                data: { labels: [], datasets: [{ label: '24h Prediction', data: [], borderColor: '#8b5cf6', backgroundColor: 'rgba(139,92,246,0.1)', fill: true, tension: 0.4, borderWidth: 3, pointRadius: 4, borderDash: [8,4] }] },
-                options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: true, position: 'top' } }, scales: { y: { beginAtZero: false, grid: { color: 'rgba(0,0,0,0.05)' } }, x: { grid: { display: false } } } }
-            });
-
-            // Initialize alert data
-            updateAlertChartData();
+            }
         }
+    );
 
-        // ============================================
-        // UPDATE ALERT DATA (3 CURVES)
-        // ============================================
-       async function updateAlertChartData() {
+    // SIGNAL MINI CHART
+
+    state.charts.signal = new Chart(
+        document.getElementById('signalTrendChart'),
+        {
+            type: 'line',
+            data: {
+                labels: [],
+                datasets: [{
+                    data: [],
+                    borderColor: '#3b82f6',
+                    backgroundColor: 'rgba(59,130,246,0.1)',
+                    fill: true,
+                    tension: 0.4,
+                    borderWidth: 2.5,
+                    pointRadius: 3,
+                    pointBackgroundColor: '#3b82f6'
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { display: false }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: false,
+                        grid: {
+                            color: 'rgba(0,0,0,0.05)'
+                        }
+                    },
+                    x: {
+                        grid: { display: false }
+                    }
+                }
+            }
+        }
+    );
+
+    // HISTORY CHART
+
+    state.charts.history = new Chart(
+        document.getElementById('historyChart'),
+        {
+            type: 'line',
+            data: {
+                labels: [],
+                datasets: [
+                    {
+                        label: 'Temperature °C',
+                        data: [],
+                        borderColor: '#f59e0b',
+                        backgroundColor: 'rgba(245,158,11,0.1)',
+                        yAxisID: 'y',
+                        tension: 0.4,
+                        fill: true,
+                        borderWidth: 3,
+                        pointRadius: 3
+                    },
+                    {
+                        label: 'Signal %',
+                        data: [],
+                        borderColor: '#3b82f6',
+                        backgroundColor: 'rgba(59,130,246,0.1)',
+                        yAxisID: 'y1',
+                        tension: 0.4,
+                        fill: true,
+                        borderWidth: 3,
+                        pointRadius: 3
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                interaction: {
+                    mode: 'index',
+                    intersect: false
+                },
+                plugins: {
+                    zoom: {
+                        zoom: {
+                            wheel: { enabled: true },
+                            pinch: { enabled: true },
+                            mode: 'x'
+                        },
+                        pan: {
+                            enabled: true,
+                            mode: 'x'
+                        }
+                    }
+                },
+                scales: {
+                    y: {
+                        position: 'left',
+                        title: {
+                            display: true,
+                            text: 'Temperature (°C)',
+                            color: '#F59E0B'
+                        },
+                        grid: {
+                            color: 'rgba(0,0,0,0.05)'
+                        }
+                    },
+                    y1: {
+                        position: 'right',
+                        grid: {
+                            drawOnChartArea: false
+                        },
+                        title: {
+                            display: true,
+                            text: 'Signal (%)',
+                            color: '#3B82F6'
+                        }
+                    },
+                    x: {
+                        grid: { display: false }
+                    }
+                }
+            }
+        }
+    );
+
+    // ALERT CHART
+
+    state.charts.alert = new Chart(
+        document.getElementById('alertChart'),
+        {
+            type: 'line',
+            data: {
+                labels: [],
+                datasets: [
+                    {
+                        label: '🌡️ Temperature Alerts',
+                        data: [],
+                        borderColor: '#EF4444',
+                        backgroundColor: 'rgba(239,68,68,0.08)',
+                        fill: true,
+                        tension: 0.4,
+                        borderWidth: 3,
+                        pointRadius: 5,
+                        pointBackgroundColor: '#EF4444'
+                    },
+                    {
+                        label: '📶 Signal Alerts',
+                        data: [],
+                        borderColor: '#F59E0B',
+                        backgroundColor: 'rgba(245,158,11,0.08)',
+                        fill: true,
+                        tension: 0.4,
+                        borderWidth: 3,
+                        pointRadius: 5,
+                        pointBackgroundColor: '#F59E0B'
+                    },
+                    {
+                        label: '🔌 Connection Alerts',
+                        data: [],
+                        borderColor: '#3B82F6',
+                        backgroundColor: 'rgba(59,130,246,0.08)',
+                        fill: true,
+                        tension: 0.4,
+                        borderWidth: 3,
+                        pointRadius: 5,
+                        pointBackgroundColor: '#3B82F6'
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                interaction: {
+                    mode: 'index',
+                    intersect: false
+                },
+                plugins: {
+                    legend: {
+                        display: true,
+                        position: 'top'
+                    }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        grid: {
+                            color: 'rgba(0,0,0,0.05)'
+                        }
+                    },
+                    x: {
+                        grid: { display: false }
+                    }
+                }
+            }
+        }
+    );
+
+    // PREDICTION CHART
+
+    state.charts.predict = new Chart(
+        document.getElementById('predictChart'),
+        {
+            type: 'line',
+            data: {
+                labels: [],
+                datasets: [{
+                    label: '24h Prediction',
+                    data: [],
+                    borderColor: '#8b5cf6',
+                    backgroundColor: 'rgba(139,92,246,0.1)',
+                    fill: true,
+                    tension: 0.4,
+                    borderWidth: 3,
+                    pointRadius: 4,
+                    borderDash: [8,4]
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false
+            }
+        }
+    );
+
+    updateAlertChartData();
+}
+
+// ============================================
+// ALERT CHART
+// ============================================
+
+async function updateAlertChartData() {
 
     try {
 
@@ -569,8 +694,6 @@ $username = $_SESSION['user_name'] ?? 'User';
             );
         });
 
-        // UPDATE CHART
-
         state.charts.alert.data.labels = labels;
 
         state.charts.alert.data.datasets[0].data =
@@ -583,8 +706,6 @@ $username = $_SESSION['user_name'] ?? 'User';
             connData;
 
         state.charts.alert.update();
-
-        // UPDATE COUNTERS
 
         const totalTemp =
             tempData.reduce((a,b)=>a+b,0);
@@ -610,8 +731,6 @@ $username = $_SESSION['user_name'] ?? 'User';
             totalSignal +
             totalConn;
 
-        // AI SCORE
-
         calculateAIScore([
             totalTemp,
             totalSignal,
@@ -627,145 +746,421 @@ $username = $_SESSION['user_name'] ?? 'User';
     }
 }
 
-        function calculateAIScore(arr) {
-            const total = arr.reduce((a, b) => a + b, 0);
-            const score = Math.max(0, Math.min(100, 100 - total * 2));
-            document.getElementById('aiScore').textContent = score + '%';
-            let status = 'Excellent', cls = 'text-green-600';
-            if (score < 50) { status = 'Critical'; cls = 'text-red-600'; }
-            else if (score < 70) { status = 'Warning'; cls = 'text-orange-600'; }
-            else if (score < 90) { status = 'Good'; cls = 'text-blue-600'; }
-            document.getElementById('aiHealth').textContent = status;
-            document.getElementById('aiHealth').className = `text-2xl font-bold ${cls}`;
-        }
+// ============================================
+// AI SCORE
+// ============================================
 
-        function pushMini(chart, value) {
-            const now = new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false });
-            chart.data.labels.push(now);
-            chart.data.datasets[0].data.push(value);
-            if (chart.data.labels.length > CONFIG.MAX_DATA_POINTS) {
-                chart.data.labels.shift();
-                chart.data.datasets[0].data.shift();
-            }
-            chart.update('none');
-        }
+function calculateAIScore(arr) {
 
-        async function switchHistoryView(period) {
-            state.currentPeriod = period;
-            document.querySelectorAll('[id^="btn"]').forEach(b => { b.classList.remove('bg-blue-600','text-white','shadow-md'); });
-            document.getElementById(`btn${period}`).classList.add('bg-blue-600','text-white','shadow-md');
-            
-            try {
-                const r = await fetch(`get_history.php?period=${period}&user_id=<?= $user_id ?>`);
-                const j = await r.json();
-                if (!j.success || !j.history) return;
-                
-                const rows = j.history.reverse();
-                const labels = rows.map(x => {
-                    const d = new Date(x.timestamp);
-                    if (period === '7d') return d.toLocaleDateString('en-US', { weekday: 'short', day: 'numeric' });
-                    if (period === '30d') return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-                    return d.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
-                });
-                
-                const temp = rows.map(x => safeNum(x.temperature));
-                const signal = rows.map(x => safeNum(x.signal_strength));
-                
-                state.charts.history.data.labels = labels;
-                state.charts.history.data.datasets[0].data = temp;
-                state.charts.history.data.datasets[1].data = signal;
-                state.charts.history.update();
-                
-                if (temp.length) {
-                    document.getElementById('historyMin').textContent = Math.min(...temp).toFixed(1) + '°C';
-                    document.getElementById('historyMax').textContent = Math.max(...temp).toFixed(1) + '°C';
-                    document.getElementById('historyAvg').textContent = (temp.reduce((a,b)=>a+b,0)/temp.length).toFixed(1) + '°C';
-                    document.getElementById('dataPoints').textContent = temp.length;
-                }
-                generatePrediction(temp);
-            } catch (e) { console.error("History error:", e); }
-        }
+    const total =
+        arr.reduce((a, b) => a + b, 0);
 
-        function generatePrediction(history) {
-            if (history.length < 5) return;
-            const recent = history.slice(-10);
-            const avg = recent.reduce((a,b)=>a+b,0)/recent.length;
-            const trend = recent[recent.length-1] - recent[0];
-            const labels = [], values = [];
-            for (let i=1; i<=24; i++) {
-                labels.push(`+${i}h`);
-                values.push(parseFloat((avg + (trend/recent.length)*i + (Math.random()*0.5-0.25)).toFixed(2)));
-            }
-            state.charts.predict.data.labels = labels;
-            state.charts.predict.data.datasets[0].data = values;
-            state.charts.predict.update();
-        }
+    const score =
+        Math.max(
+            0,
+            Math.min(100, 100 - total * 2)
+        );
 
-        function detectAnomaly(temp, signal) {
-            let anomaly = 'None', cls = 'text-green-600';
-            if (temp > 30 || signal < 20) { anomaly = 'Critical'; cls = 'text-red-600'; }
-            else if (temp > 26 || signal < 40) { anomaly = 'Warning'; cls = 'text-orange-600'; }
-            document.getElementById('anomalyText').textContent = anomaly;
-            document.getElementById('anomalyText').className = `text-2xl font-bold ${cls}`;
-        }
-        function getTrend(arr) {
+    document.getElementById('aiScore')
+        .textContent = score + '%';
 
-    if (arr.length < 5) {
-        return 'stable';
+    let status = 'Excellent';
+    let cls = 'text-green-600';
+
+    if (score < 50) {
+
+        status = 'Critical';
+        cls = 'text-red-600';
+
+    } else if (score < 70) {
+
+        status = 'Warning';
+        cls = 'text-orange-600';
+
+    } else if (score < 90) {
+
+        status = 'Good';
+        cls = 'text-blue-600';
     }
 
-    const first = arr[0];
-    const last = arr[arr.length - 1];
+    document.getElementById('aiHealth')
+        .textContent = status;
 
-    const diff = last - first;
-
-    if (diff > 2) {
-        return 'rising';
-    }
-
-    if (diff < -2) {
-        return 'falling';
-    }
-
-    return 'stable';
+    document.getElementById('aiHealth')
+        .className =
+        `text-2xl font-bold ${cls}`;
 }
 
-        function analyzeTemp(temp) {
-            document.getElementById('currentTemp').textContent = temp.toFixed(1) + '°C';
-            let s = 'Stable', c = 'bg-green-100 text-green-700', icon = '🌡️';
-            if (temp > CONFIG.TEMP_CRITICAL) { s = 'Critical'; c = 'bg-red-100 text-red-700'; icon = '🔥'; }
-            else if (temp > CONFIG.TEMP_WARNING) { s = 'High'; c = 'bg-orange-100 text-orange-700'; }
-            document.getElementById('tempTrend').textContent = s;
-            document.getElementById('tempTrend').className = `font-bold px-3 py-1 rounded-full text-sm ${c}`;
-            document.getElementById('tempIcon').textContent = icon;
-            pushMini(state.charts.temp, temp);
+// ============================================
+// MINI CHART UPDATE
+// ============================================
+
+function pushMini(chart, value) {
+
+    const now =
+        new Date().toLocaleTimeString(
+            'en-US',
+            {
+                hour: '2-digit',
+                minute: '2-digit',
+                second: '2-digit',
+                hour12: false
+            }
+        );
+
+    chart.data.labels.push(now);
+
+    chart.data.datasets[0].data.push(value);
+
+    if (
+        chart.data.labels.length >
+        CONFIG.MAX_DATA_POINTS
+    ) {
+        chart.data.labels.shift();
+        chart.data.datasets[0].data.shift();
+    }
+
+    chart.update('none');
+}
+
+// ============================================
+// HISTORY VIEW
+// ============================================
+
+async function switchHistoryView(period) {
+
+    state.currentPeriod = period;
+
+    document.querySelectorAll('[id^="btn"]')
+        .forEach(b => {
+
+            b.classList.remove(
+                'bg-blue-600',
+                'text-white',
+                'shadow-md'
+            );
+        });
+
+    document.getElementById(`btn${period}`)
+        .classList.add(
+            'bg-blue-600',
+            'text-white',
+            'shadow-md'
+        );
+
+    try {
+
+        const r = await fetch(
+            `get_history.php?period=${period}&user_id=<?= $user_id ?>`
+        );
+
+        const j = await r.json();
+
+        if (!j.success || !j.history) return;
+
+        const rows = j.history.reverse();
+
+        const labels = rows.map(x => {
+
+            const d = new Date(x.timestamp);
+
+            if (period === '7d') {
+
+                return d.toLocaleDateString(
+                    'en-US',
+                    {
+                        weekday: 'short',
+                        day: 'numeric'
+                    }
+                );
+            }
+
+            if (period === '30d') {
+
+                return d.toLocaleDateString(
+                    'en-US',
+                    {
+                        month: 'short',
+                        day: 'numeric'
+                    }
+                );
+            }
+
+            return d.toLocaleTimeString(
+                'en-US',
+                {
+                    hour: '2-digit',
+                    minute: '2-digit'
+                }
+            );
+        });
+
+        const temp =
+            rows.map(x =>
+                safeNum(x.temperature)
+            );
+
+        const signal =
+            rows.map(x =>
+                safeNum(x.signal_strength)
+            );
+
+        state.charts.history.data.labels =
+            labels;
+
+        state.charts.history.data.datasets[0].data =
+            temp;
+
+        state.charts.history.data.datasets[1].data =
+            signal;
+
+        state.charts.history.update();
+
+        if (temp.length) {
+
+            document.getElementById('historyMin')
+                .textContent =
+                Math.min(...temp).toFixed(1) + '°C';
+
+            document.getElementById('historyMax')
+                .textContent =
+                Math.max(...temp).toFixed(1) + '°C';
+
+            document.getElementById('historyAvg')
+                .textContent =
+                (
+                    temp.reduce((a,b)=>a+b,0)
+                    / temp.length
+                ).toFixed(1) + '°C';
+
+            document.getElementById('dataPoints')
+                .textContent =
+                temp.length;
         }
 
-        function analyzeSignal(signal) {
-            document.getElementById('currentSignal').textContent = signal + '%';
-            let s = 'Excellent', c = 'bg-green-100 text-green-700';
-            if (signal < CONFIG.SIGNAL_CRITICAL) { s = 'Critical'; c = 'bg-red-100 text-red-700'; }
-            else if (signal < CONFIG.SIGNAL_WARNING) { s = 'Weak'; c = 'bg-orange-100 text-orange-700'; }
-            document.getElementById('signalTrend').textContent = s;
-            document.getElementById('signalTrend').className = `font-bold px-3 py-1 rounded-full text-sm ${c}`;
-            pushMini(state.charts.signal, signal);
-        }
+        generatePrediction(temp);
 
-        function updateDeviceStatus() {
-            const online = (Date.now() - state.lastUpdate) < CONFIG.OFFLINE_THRESHOLD;
-            const el = document.getElementById('deviceStatus');
-            if (online) { el.textContent = 'Online'; el.className = 'font-bold text-lg status-online'; }
-            else { el.textContent = 'Offline'; el.className = 'font-bold text-lg status-offline'; }
-        }
+    } catch (e) {
 
-        function updateUptime() {
-            const sec = Math.floor((Date.now() - state.lastUpdate)/1000);
-            const m = Math.floor(sec/60), h = Math.floor(m/60);
-            document.getElementById('uptime').textContent = h>0 ? `${h}h ${m%60}m` : m>0 ? `${m}m ${sec%60}s` : `${sec}s`;
-        }
-        function setOfflineUI() {
+        console.error(
+            "History error:",
+            e
+        );
+    }
+}
 
-    // TEMP
+// ============================================
+// PREDICTION
+// ============================================
+
+function generatePrediction(history) {
+
+    if (history.length < 5) return;
+
+    const recent = history.slice(-10);
+
+    const avg =
+        recent.reduce((a,b)=>a+b,0)
+        / recent.length;
+
+    const trend =
+        recent[recent.length-1]
+        - recent[0];
+
+    const labels = [];
+    const values = [];
+
+    for (let i=1; i<=24; i++) {
+
+        labels.push(`+${i}h`);
+
+        values.push(
+            parseFloat(
+                (
+                    avg +
+                    (trend/recent.length)*i +
+                    (Math.random()*0.5-0.25)
+                ).toFixed(2)
+            )
+        );
+    }
+
+    state.charts.predict.data.labels =
+        labels;
+
+    state.charts.predict.data.datasets[0].data =
+        values;
+
+    state.charts.predict.update();
+}
+
+// ============================================
+// ANOMALY
+// ============================================
+
+function detectAnomaly(temp, signal) {
+
+    let anomaly = 'None';
+    let cls = 'text-green-600';
+
+    if (
+        temp > CONFIG.TEMP_CRITICAL ||
+        signal < 20
+    ) {
+
+        anomaly = 'Critical';
+        cls = 'text-red-600';
+
+    } else if (
+        temp >= CONFIG.TEMP_WARNING_MIN ||
+        signal < 40
+    ) {
+
+        anomaly = 'Warning';
+        cls = 'text-orange-600';
+    }
+
+    document.getElementById('anomalyText')
+        .textContent = anomaly;
+
+    document.getElementById('anomalyText')
+        .className =
+        `text-2xl font-bold ${cls}`;
+}
+
+// ============================================
+// TEMPERATURE STATUS
+// ============================================
+
+function analyzeTemp(temp) {
+
+    document.getElementById('currentTemp')
+        .textContent =
+        temp.toFixed(1) + '°C';
+
+    let status = 'Normal';
+    let color =
+        'bg-green-100 text-green-700';
+
+    let icon = '✅';
+
+    // NORMAL 18-24
+
+    if (
+        temp >= CONFIG.TEMP_NORMAL_MIN &&
+        temp < CONFIG.TEMP_NORMAL_MAX
+    ) {
+
+        status = 'Normal';
+        color =
+            'bg-green-100 text-green-700';
+
+        icon = '✅';
+    }
+
+    // WARNING 24-28
+
+    else if (
+        temp >= CONFIG.TEMP_WARNING_MIN &&
+        temp < CONFIG.TEMP_WARNING_MAX
+    ) {
+
+        status = 'Warning';
+        color =
+            'bg-orange-100 text-orange-700';
+
+        icon = '⚠️';
+    }
+
+    // CRITICAL >28
+
+    else if (
+        temp >= CONFIG.TEMP_CRITICAL
+    ) {
+
+        status = 'Critical';
+        color =
+            'bg-red-100 text-red-700';
+
+        icon = '🔥';
+    }
+
+    // LOW TEMP
+
+    else {
+
+        status = 'Low';
+        color =
+            'bg-blue-100 text-blue-700';
+
+        icon = '❄️';
+    }
+
+    document.getElementById('tempTrend')
+        .textContent = status;
+
+    document.getElementById('tempTrend')
+        .className =
+        `font-bold px-3 py-1 rounded-full text-sm ${color}`;
+
+    document.getElementById('tempIcon')
+        .textContent = icon;
+
+    pushMini(
+        state.charts.temp,
+        temp
+    );
+}
+
+// ============================================
+// SIGNAL STATUS
+// ============================================
+
+function analyzeSignal(signal) {
+
+    document.getElementById('currentSignal')
+        .textContent =
+        signal + '%';
+
+    let s = 'Excellent';
+    let c =
+        'bg-green-100 text-green-700';
+
+    if (signal < CONFIG.SIGNAL_CRITICAL) {
+
+        s = 'Critical';
+
+        c =
+        'bg-red-100 text-red-700';
+
+    } else if (
+        signal < CONFIG.SIGNAL_WARNING
+    ) {
+
+        s = 'Weak';
+
+        c =
+        'bg-orange-100 text-orange-700';
+    }
+
+    document.getElementById('signalTrend')
+        .textContent = s;
+
+    document.getElementById('signalTrend')
+        .className =
+        `font-bold px-3 py-1 rounded-full text-sm ${c}`;
+
+    pushMini(
+        state.charts.signal,
+        signal
+    );
+}
+
+// ============================================
+// OFFLINE UI
+// ============================================
+
+function setOfflineUI() {
 
     document.getElementById('currentTemp')
         .textContent = '--°C';
@@ -780,8 +1175,6 @@ $username = $_SESSION['user_name'] ?? 'User';
     document.getElementById('tempIcon')
         .textContent = '🔴';
 
-    // SIGNAL
-
     document.getElementById('currentSignal')
         .textContent = '--%';
 
@@ -795,20 +1188,6 @@ $username = $_SESSION['user_name'] ?? 'User';
     document.getElementById('signalIcon')
         .textContent = '🔴';
 
-    // AI
-
-    document.getElementById('insightsContainer')
-        .innerHTML =
-        '<p class="text-red-500">Device offline</p>';
-
-    document.getElementById('predictionsContainer')
-        .innerHTML =
-        '<p class="text-red-500">No prediction available</p>';
-
-    document.getElementById('recommendationsContainer')
-        .innerHTML =
-        '<p class="text-red-500">Reconnect device</p>';
-
     document.getElementById('anomalyText')
         .textContent = 'Offline';
 
@@ -817,7 +1196,11 @@ $username = $_SESSION['user_name'] ?? 'User';
         'text-2xl font-bold text-red-600';
 }
 
-     async function loadAnalytics() {
+// ============================================
+// LOAD ANALYTICS
+// ============================================
+
+async function loadAnalytics() {
 
     try {
 
@@ -827,8 +1210,6 @@ $username = $_SESSION['user_name'] ?? 'User';
 
         const j = await r.json();
 
-        // CHECK RESPONSE
-
         if (!j.success || !j.data) {
 
             setOfflineUI();
@@ -836,52 +1217,30 @@ $username = $_SESSION['user_name'] ?? 'User';
             return;
         }
 
-        // REAL TIMESTAMP FROM DATABASE
-
         const createdAt =
-            new Date(j.data.created_at).getTime();
+            new Date(
+                j.data.created_at
+            ).getTime();
 
         const now = Date.now();
 
-        const diff = now - createdAt;
+        const diff =
+            now - createdAt;
 
-        // ============================================
-        // DEVICE OFFLINE
-        // ============================================
+        // OFFLINE
 
-        if (diff > CONFIG.OFFLINE_THRESHOLD) {
-
-            document.getElementById('deviceStatus')
-                .textContent = 'Offline';
-
-            document.getElementById('deviceStatus')
-                .className =
-                'font-bold text-lg status-offline';
-
-            document.getElementById('dhtStatus')
-                .textContent = 'Disconnected';
-
-            document.getElementById('dhtStatus')
-                .className =
-                'font-bold text-lg status-offline';
-
-            document.getElementById('dhtIcon')
-                .textContent = '🔴';
-
-            document.getElementById('liveStatusText')
-                .textContent = 'Offline';
-
-            document.getElementById('liveStatusText')
-                .className = 'text-red-600';
+        if (
+            diff > CONFIG.OFFLINE_THRESHOLD
+        ) {
 
             setOfflineUI();
 
             return;
         }
 
-        // ============================================
-        // DEVICE ONLINE
-        // ============================================
+        // ONLINE
+
+        state.lastUpdate = createdAt;
 
         document.getElementById('deviceStatus')
             .textContent = 'Online';
@@ -890,169 +1249,37 @@ $username = $_SESSION['user_name'] ?? 'User';
             .className =
             'font-bold text-lg status-online';
 
-        document.getElementById('dhtStatus')
-            .textContent = 'Connected';
-
-        document.getElementById('dhtStatus')
-            .className =
-            'font-bold text-lg status-online';
-
-        document.getElementById('dhtIcon')
-            .textContent = '🟢';
-
-        document.getElementById('liveStatusText')
-            .textContent = 'Real-time';
-
-        document.getElementById('liveStatusText')
-            .className = 'text-green-700';
-
-        // SAVE REAL LAST UPDATE
-
-        state.lastUpdate = createdAt;
-
-        // ============================================
-        // SENSOR VALUES
-        // ============================================
-
         const temp =
             safeNum(j.data.temperature);
 
         const signal =
             safeNum(j.data.signal_strength);
 
-        // ============================================
-        // LAST SEEN (REAL)
-        // ============================================
-
-        document.getElementById('lastSeen')
-            .textContent =
-            new Date(j.data.created_at)
-            .toLocaleTimeString('en-US', {
-                hour: '2-digit',
-                minute: '2-digit',
-                second: '2-digit'
-            });
-
-        // ============================================
-        // DHT LAST READING
-        // ============================================
-
-        document.getElementById('dhtLastReading')
-            .textContent =
-            new Date(j.data.created_at)
-            .toLocaleTimeString('en-US', {
-                hour: '2-digit',
-                minute: '2-digit',
-                second: '2-digit'
-            });
-
-        // ============================================
-        // ANALYTICS
-        // ============================================
-
         analyzeTemp(temp);
 
         analyzeSignal(signal);
-state.temperatureHistory.push(temp);
-state.signalHistory.push(signal);
 
-if (state.temperatureHistory.length > 20) {
-    state.temperatureHistory.shift();
-}
-
-if (state.signalHistory.length > 20) {
-    state.signalHistory.shift();
-}
         detectAnomaly(temp, signal);
 
-        // ============================================
-        // AI / INSIGHTS
-        // ============================================
+        state.temperatureHistory.push(temp);
 
-       const tempTrendAI =
-    getTrend(state.temperatureHistory);
+        state.signalHistory.push(signal);
 
-const signalTrendAI =
-    getTrend(state.signalHistory);
+        if (
+            state.temperatureHistory.length > 20
+        ) {
+            state.temperatureHistory.shift();
+        }
 
-let insightHTML = '';
-
-if (tempTrendAI === 'rising') {
-
-    insightHTML += `
-    <p>🔥 Temperature increasing continuously</p>
-    `;
-
-} else if (tempTrendAI === 'falling') {
-
-    insightHTML += `
-    <p>❄️ Temperature decreasing</p>
-    `;
-
-} else {
-
-    insightHTML += `
-    <p>✅ Temperature stable</p>
-    `;
-}
-
-if (signalTrendAI === 'falling') {
-
-    insightHTML += `
-    <p>📶 Signal quality dropping</p>
-    `;
-
-} else {
-
-    insightHTML += `
-    <p>✅ Network stable</p>
-    `;
-}
-
-document.getElementById('insightsContainer')
-.innerHTML = insightHTML;
-
-        document.getElementById('predictionsContainer')
-            .innerHTML =
-            `
-            <p>
-                ${temp > 27
-                    ? '⚠️ Temperature rising trend'
-                    : '✅ Temperature stable'}
-            </p>
-
-            <p>
-                ${signal < 40
-                    ? '⚠️ Signal degradation possible'
-                    : '✅ Signal stable'}
-            </p>
-            `;
-
-        document.getElementById('recommendationsContainer')
-            .innerHTML =
-            `
-            <p>
-                ${temp > CONFIG.TEMP_WARNING
-                    ? '🌡️ Monitor temperature'
-                    : '✅ Temperature normal'}
-            </p>
-
-            <p>
-                ${signal < CONFIG.SIGNAL_WARNING
-                    ? '📶 Check network'
-                    : '✅ Network optimal'}
-            </p>
-            `;
-
-        // ============================================
-        // UPDATE ALERTS
-        // ============================================
+        if (
+            state.signalHistory.length > 20
+        ) {
+            state.signalHistory.shift();
+        }
 
         updateAlertChartData();
 
-    }
-
-    catch (e) {
+    } catch (e) {
 
         console.error(
             "Analytics Error:",
@@ -1063,141 +1290,334 @@ document.getElementById('insightsContainer')
     }
 }
 
-        async function generatePDFReport() {
-            const ld = document.getElementById('pdfLoading');
-            if (ld) ld.style.display = 'block';
-            try {
-                const { jsPDF } = window.jspdf;
-                const doc = new jsPDF('p', 'mm', 'a4');
-                const W=210, H=297;
-                const username = "<?= htmlspecialchars($username) ?>";
-                const ct = document.getElementById('currentTemp')?.textContent || '--';
-                const cs = document.getElementById('currentSignal')?.textContent || '--';
-                const ai = document.getElementById('aiScore')?.textContent || '--';
-                const an = document.getElementById('anomalyText')?.textContent || '--';
-                const ds = document.getElementById('deviceStatus')?.textContent || '--';
-                const sn = parseFloat(ai) || 0;
-                const tn = parseFloat(ct) || 0;
-                const sgn = parseFloat(cs) || 0;
+// ============================================
+// PDF REPORT
+// ============================================
 
-                const addHeader = (t) => { doc.setFillColor(30,64,175); doc.rect(0,0,W,18,'F'); doc.setTextColor(255,255,255); doc.setFontSize(15); doc.text(t,15,12); };
-                const addFooter = () => { for(let i=1;i<=doc.internal.getNumberOfPages();i++){ doc.setPage(i); doc.setTextColor(120); doc.setFontSize(8); doc.text(`Smart IoT Pro Report • Page ${i}/${doc.internal.getNumberOfPages()}`,15,292); } };
-                const card = (x,y,w,h,c,t,v) => { doc.setFillColor(...c); doc.roundedRect(x,y,w,h,3,3,'F'); doc.setTextColor(255,255,255); doc.setFontSize(10); doc.text(t,x+4,y+7); doc.setFontSize(13); doc.text(String(v),x+4,y+16); };
+async function generatePDFReport() {
 
-                // Page 1 - Cover
-                doc.setFillColor(15,23,42);
-                doc.rect(0, 0, W, H, 'F');
+    const ld =
+        document.getElementById('pdfLoading');
 
-                // logo image
-                const logo = new Image();
-                logo.src = 'logo.png'; 
+    if (ld) {
+        ld.style.display = 'block';
+    }
 
-                await new Promise((resolve) => {
-                    logo.onload = resolve;
-                    logo.onerror = resolve;
-                });
+    try {
 
-                if (logo.complete && logo.naturalWidth > 0) {
-                    doc.addImage(logo, 'PNG', 25, 28, 28, 28);
-                }
+        const { jsPDF } = window.jspdf;
 
-                doc.setTextColor(255,255,255);
-                doc.setFontSize(26);
-                doc.text("ENVIRONET", 65, 48);
+        const doc =
+            new jsPDF('p', 'mm', 'a4');
 
-                doc.setFontSize(18);
-                doc.text("SMART MONITORING REPORT", 50, 68);
-                // Generate QR Code
-                const qrDiv = document.createElement('div');
-                new QRCode(qrDiv, { text: window.location.href, width:100, height:100 });
-                await new Promise(r=>setTimeout(r,300));
-                const qrImg = qrDiv.querySelector('img')?.src || qrDiv.querySelector('canvas')?.toDataURL();
-                if(qrImg) doc.addImage(qrImg,'PNG',145,110,35,35);
+        const W = 210;
+        const H = 297;
 
-                // Page 2 - Dashboard
-                doc.addPage(); addHeader("Executive Dashboard"); let y=30;
-                card(15,y,42,22,[249,115,22],"TEMP",ct);
-                card(62,y,42,22,[37,99,235],"SIGNAL",cs);
-                card(109,y,42,22,[139,92,246],"AI SCORE",ai);
-                card(156,y,39,22,[16,185,129],"STATUS",ds);
-                y+=35;
+        const username =
+            "<?= htmlspecialchars($username) ?>";
 
-                // Animated Gauge
-                doc.setFontSize(14); doc.setTextColor(0); doc.text("AI Gauge",15,y);
-                const cx=60, cy=y+35, rad=25;
-                for(let f = 0; f < 5; f++) {
-                    if(f > 0){
-                        doc.setFillColor(255,255,255);
-                        doc.rect(30, y+5, 60, 60, 'F');
-                    }
+        const currentTemp =
+            document.getElementById(
+                'currentTemp'
+            ).textContent;
 
-                    doc.setDrawColor(220);
-                    doc.setLineWidth(2);
-                    doc.circle(cx, cy, rad);
+        const currentSignal =
+            document.getElementById(
+                'currentSignal'
+            ).textContent;
 
-                    const angle = (sn * 1.8 * (f + 1) / 5) - 90;
-                    const radA = angle * Math.PI / 180;
+        const aiScore =
+            document.getElementById(
+                'aiScore'
+            ).textContent;
 
-                    doc.setDrawColor(...(sn > 70 ? [34,197,94] : sn > 40 ? [245,158,11] : [220,38,38]));
-                    doc.setLineWidth(2);
+        const anomaly =
+            document.getElementById(
+                'anomalyText'
+            ).textContent;
 
-                    doc.line(
-                        cx,
-                        cy,
-                        cx + rad * Math.cos(radA),
-                        cy + rad * Math.sin(radA)
-                    );
+        // COVER
 
-                    doc.setFontSize(16);
-                    doc.text(ai, cx - 7, cy + 8);
+        doc.setFillColor(15,23,42);
 
-                    await new Promise(r => setTimeout(r, 30));
-                }
+        doc.rect(0,0,W,H,'F');
 
-                // Page 3 - Charts
-                doc.addPage(); addHeader("Analytics Charts"); y=28;
-                const hc=document.getElementById('historyChart'), ac=document.getElementById('alertChart'), pc=document.getElementById('predictChart');
-                doc.text("History",15,y); y+=5; if(hc) doc.addImage(hc.toDataURL('image/png'),'PNG',15,y,180,60); y+=70;
-                doc.text("Alerts (3 curves)",15,y); y+=5; if(ac) doc.addImage(ac.toDataURL('image/png'),'PNG',15,y,180,55); y+=65;
-                doc.text("Prediction",15,y); y+=5; if(pc) doc.addImage(pc.toDataURL('image/png'),'PNG',15,y,180,45);
+        doc.setTextColor(255,255,255);
 
-                // Page 4 - Technical Metrics
-                doc.addPage(); addHeader("Technical Metrics"); y=30;
-                doc.autoTable({ startY:y, head:[['Metric','Value','Evaluation']], body:[
-                    ['Temperature',ct,tn>CONFIG.TEMP_CRITICAL?'Critical':tn>CONFIG.TEMP_WARNING?'High':'Normal'],
-                    ['Signal',cs,sgn<CONFIG.SIGNAL_CRITICAL?'Critical':sgn<CONFIG.SIGNAL_WARNING?'Weak':'Stable'],
-                    ['AI Score',ai,sn>70?'Healthy':sn>40?'Warning':'Risk'],
-                    ['Anomaly',an,an!=='None'?'⚠️ Active':'✅ Clear']
-                ], theme:'grid', headStyles:{fillColor:[30,64,175]} });
-                y=doc.lastAutoTable.finalY+40;
-                doc.line(30,y,90,y); doc.text("Technical Supervisor",42,y+8);
-                doc.line(120,y,180,y); doc.text("System Signature",137,y+8);
+        doc.setFontSize(28);
 
-                // Page 5 - AI Conclusion
-                doc.addPage(); addHeader("AI Conclusion"); y=35;
-                let conclusion = sn>=80 ? "The monitored environment operates within optimal parameters. AI confirms healthy status and predictive stability. No immediate action required." : sn>=50 ? "Moderate operational instability detected. Preventive maintenance recommended within the next 24 hours." : "Critical anomalies detected. Immediate intervention required. System stability is compromised.";
-                doc.setTextColor(0); doc.setFontSize(12); doc.text(doc.splitTextToSize(conclusion,170),15,y);
-                y+=40;
-                const insights=document.getElementById('insightsContainer')?.innerText||'', pred=document.getElementById('predictionsContainer')?.innerText||'', rec=document.getElementById('recommendationsContainer')?.innerText||'';
-                doc.setFontSize(11); doc.setTextColor(30,64,175); doc.text("AI Insights:",15,y); doc.setTextColor(0); doc.setFontSize(10); doc.text(doc.splitTextToSize(insights,170),15,y+8);
-                y+=30; doc.setTextColor(30,64,175); doc.setFontSize(11); doc.text("Predictions:",15,y); doc.setTextColor(0); doc.setFontSize(10); doc.text(doc.splitTextToSize(pred,170),15,y+8);
-                y+=30; doc.setTextColor(30,64,175); doc.setFontSize(11); doc.text("Recommendations:",15,y); doc.setTextColor(0); doc.setFontSize(10); doc.text(doc.splitTextToSize(rec,170),15,y+8);
-                
-                addFooter();
-                doc.save(`smart-analytics-pro-report-${Date.now()}.pdf`);
-            } catch(e) { console.error("PDF Error:",e); alert("PDF generation failed. Please try again."); }
-            finally { if(ld) ld.style.display='none'; }
+        doc.text(
+            "ENVIRONET",
+            60,
+            55
+        );
+
+        doc.setFontSize(18);
+
+        doc.text(
+            "SMART ANALYTICS REPORT",
+            35,
+            80
+        );
+
+        doc.setFontSize(12);
+
+        doc.text(
+            `Generated for: ${username}`,
+            35,
+            105
+        );
+
+        doc.text(
+            `Date: ${new Date().toLocaleString()}`,
+            35,
+            115
+        );
+
+        // DASHBOARD PAGE
+
+        doc.addPage();
+
+        doc.setTextColor(0);
+
+        doc.setFontSize(18);
+
+        doc.text(
+            "Executive Summary",
+            20,
+            25
+        );
+
+        doc.autoTable({
+
+            startY: 40,
+
+            head: [[
+                'Metric',
+                'Value',
+                'Status'
+            ]],
+
+            body: [
+
+                [
+                    'Temperature',
+                    currentTemp,
+
+                    parseFloat(currentTemp)
+                    >= CONFIG.TEMP_CRITICAL
+
+                    ? 'Critical'
+
+                    :
+
+                    parseFloat(currentTemp)
+                    >= CONFIG.TEMP_WARNING_MIN
+
+                    ? 'Warning'
+
+                    : 'Normal'
+                ],
+
+                [
+                    'Signal',
+                    currentSignal,
+
+                    parseFloat(currentSignal)
+                    < CONFIG.SIGNAL_CRITICAL
+
+                    ? 'Critical'
+
+                    :
+
+                    parseFloat(currentSignal)
+                    < CONFIG.SIGNAL_WARNING
+
+                    ? 'Weak'
+
+                    : 'Excellent'
+                ],
+
+                [
+                    'AI Score',
+                    aiScore,
+                    'AI Health'
+                ],
+
+                [
+                    'Anomaly',
+                    anomaly,
+                    anomaly
+                ]
+            ],
+
+            theme: 'grid',
+
+            headStyles: {
+                fillColor: [30,64,175]
+            }
+        });
+
+        // CHART PAGE
+
+        doc.addPage();
+
+        doc.setFontSize(18);
+
+        doc.text(
+            "Analytics Charts",
+            20,
+            20
+        );
+
+        const historyCanvas =
+            document.getElementById(
+                'historyChart'
+            );
+
+        const alertCanvas =
+            document.getElementById(
+                'alertChart'
+            );
+
+        if (historyCanvas) {
+
+            doc.addImage(
+                historyCanvas.toDataURL('image/png'),
+                'PNG',
+                15,
+                35,
+                180,
+                70
+            );
         }
 
-        function init() {
-            initCharts();
-            switchHistoryView('24h');
-            loadAnalytics();
-            setInterval(loadAnalytics, CONFIG.UPDATE_INTERVAL);
-            setInterval(updateDeviceStatus, 5000);
-            setInterval(updateUptime, 1000);
+        if (alertCanvas) {
+
+            doc.addImage(
+                alertCanvas.toDataURL('image/png'),
+                'PNG',
+                15,
+                130,
+                180,
+                70
+            );
         }
-        document.addEventListener('DOMContentLoaded', init);
-    </script>
+
+        // CONCLUSION
+
+        doc.addPage();
+
+        doc.setFontSize(18);
+
+        doc.text(
+            "AI Conclusion",
+            20,
+            25
+        );
+
+        let conclusion = '';
+
+        const tempValue =
+            parseFloat(currentTemp);
+
+        if (
+            tempValue >= CONFIG.TEMP_CRITICAL
+        ) {
+
+            conclusion =
+            'Critical temperature detected. Immediate intervention recommended.';
+
+        } else if (
+            tempValue >= CONFIG.TEMP_WARNING_MIN
+        ) {
+
+            conclusion =
+            'Warning temperature range detected. Monitoring recommended.';
+
+        } else {
+
+            conclusion =
+            'System operating normally within safe parameters.';
+        }
+
+        doc.setFontSize(12);
+
+        doc.text(
+            doc.splitTextToSize(
+                conclusion,
+                170
+            ),
+            20,
+            50
+        );
+
+        // FOOTER
+
+        const pages =
+            doc.internal.getNumberOfPages();
+
+        for (let i = 1; i <= pages; i++) {
+
+            doc.setPage(i);
+
+            doc.setFontSize(8);
+
+            doc.setTextColor(120);
+
+            doc.text(
+                `ENVIRONET • Page ${i}/${pages}`,
+                15,
+                292
+            );
+        }
+
+        doc.save(
+            `analytics-report-${Date.now()}.pdf`
+        );
+
+    } catch (e) {
+
+        console.error(
+            "PDF Error:",
+            e
+        );
+
+        alert(
+            "PDF generation failed"
+        );
+
+    } finally {
+
+        if (ld) {
+
+            ld.style.display = 'none';
+        }
+    }
+}
+
+// ============================================
+// INIT
+// ============================================
+
+function init() {
+
+    initCharts();
+
+    switchHistoryView('24h');
+
+    loadAnalytics();
+
+    setInterval(
+        loadAnalytics,
+        CONFIG.UPDATE_INTERVAL
+    );
+}
+
+document.addEventListener(
+    'DOMContentLoaded',
+    init
+);
+</script>
 </body>
 </html>
