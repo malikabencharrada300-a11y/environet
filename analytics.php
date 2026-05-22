@@ -129,7 +129,7 @@ body {
 
     <!-- STATS CARDS -->
     <div class="grid md:grid-cols-4 gap-5 mb-6">
-        <!-- Device Status Card with DHT11 Sensor State and Last Update -->
+        <!-- Device Status Card - Sans Last Update -->
         <div class="card">
             <h2 class="font-bold mb-4">📡 Device Status</h2>
             <p class="text-gray-500 text-sm">System State</p>
@@ -241,7 +241,7 @@ const CONFIG = {
     SIGNAL_WARNING: 60,
     SIGNAL_CRITICAL: 30,
     UPDATE_INTERVAL: 5000,
-    SENSOR_TIMEOUT: 30000 // 30 seconds timeout for sensor
+    SENSOR_TIMEOUT: 30000
 };
 
 // Store alert history
@@ -452,34 +452,12 @@ function updateDHT11Status(isOnline, lastDataTime = null) {
 }
 
 // ============================================
-// UPDATE LAST UPDATE TIME
-// ============================================
-
-function updateLastUpdateTime(timestamp) {
-    const lastUpdateElement = document.getElementById('lastUpdate');
-    if (timestamp) {
-        const date = new Date(timestamp);
-        const formattedTime = date.toLocaleTimeString('en-US', {
-            hour: '2-digit',
-            minute: '2-digit',
-            second: '2-digit'
-        });
-        lastUpdateElement.innerHTML = formattedTime;
-        lastUpdateElement.className = 'font-bold text-sm text-green-600';
-    } else {
-        lastUpdateElement.innerHTML = '--:--:--';
-        lastUpdateElement.className = 'font-bold text-sm text-gray-500';
-    }
-}
-
-// ============================================
 // LOAD COMBINED SENSOR DATA
 // ============================================
 
 async function loadSensorData(period) {
     currentSensorPeriod = period;
     
-    // Update active buttons
     document.querySelectorAll('[id^="filter"][id$="Hour"],[id^="filter"][id$="Day"],[id^="filter"][id$="Week"],[id^="filter"][id$="Month"]').forEach(btn => {
         if (!btn.id.includes('Alert')) {
             btn.classList.remove('active', 'bg-blue-600', 'text-white');
@@ -671,13 +649,8 @@ async function loadLatestData() {
             const temp = parseFloat(data.temperature);
             const humidity = parseFloat(data.humidity);
             const signal = parseFloat(data.signal_strength);
-            const lastUpdateTime = data.created_at;
             
-            // Update DHT11 status - ONLINE
             updateDHT11Status(true);
-            
-            // Update last update time
-            updateLastUpdateTime(lastUpdateTime);
             
             animateValue('currentTemp', temp.toFixed(1) + '°C');
             animateValue('currentHumidity', humidity.toFixed(1) + '%');
@@ -764,16 +737,17 @@ async function loadLatestData() {
             document.getElementById('deviceStatus').className = 'text-2xl font-bold text-green-600';
             
         } else {
-            // No data received - DHT11 offline
             updateDHT11Status(false);
-            updateLastUpdateTime(null);
-            document.getElementById('deviceStatus').innerHTML = 'Standby';
+            document.getElementById('deviceStatus').innerHTML = 'Demo Mode';
             document.getElementById('deviceStatus').className = 'text-2xl font-bold text-yellow-600';
+            
+            if (sensorChart && sensorChart.data.labels.length === 0) {
+                generateDemoSensorData('day', 24);
+            }
         }
     } catch(error) {
         console.error('Error:', error);
         updateDHT11Status(false);
-        updateLastUpdateTime(null);
         document.getElementById('deviceStatus').innerHTML = 'Offline';
         document.getElementById('deviceStatus').className = 'text-2xl font-bold text-red-600';
     }
@@ -804,7 +778,6 @@ async function generatePDF() {
     const { jsPDF } = window.jspdf;
     const doc = new jsPDF();
     
-    // Logo texte stylisé
     doc.setFillColor(59, 130, 246);
     doc.roundedRect(14, 14, 30, 30, 5, 5, 'F');
     doc.setTextColor(255, 255, 255);
@@ -814,7 +787,6 @@ async function generatePDF() {
     doc.setFontSize(8);
     doc.text('NET', 28, 34);
     
-    // Entête
     doc.setFillColor(59, 130, 246);
     doc.rect(0, 0, 210, 50, 'F');
     
@@ -830,40 +802,35 @@ async function generatePDF() {
     doc.setLineWidth(0.5);
     doc.line(55, 45, 190, 45);
     
-    // Informations
     doc.setTextColor(100, 100, 100);
     doc.setFontSize(10);
     doc.text(`Generated: ${new Date().toLocaleString()}`, 20, 65);
     doc.text(`User: <?= $username ?>`, 20, 72);
     doc.text(`Report ID: ENV-${Date.now()}`, 20, 79);
     
-    // DHT11 Status dans le PDF
     const dhtStatus = document.getElementById('dhtStatusText').innerText;
     doc.text(`DHT11 Sensor: ${dhtStatus}`, 20, 89);
-    doc.text(`Last Update: ${document.getElementById('lastUpdate').innerText}`, 20, 96);
     
-    // Section Résumé
     doc.setDrawColor(59, 130, 246);
     doc.setLineWidth(0.5);
-    doc.line(20, 106, 190, 106);
+    doc.line(20, 99, 190, 99);
     
     doc.setTextColor(0, 0, 0);
     doc.setFontSize(16);
     doc.setFont('helvetica', 'bold');
-    doc.text('Executive Summary', 20, 120);
+    doc.text('Executive Summary', 20, 113);
     
     doc.setFontSize(10);
     doc.setFont('helvetica', 'normal');
-    doc.text(`Temperature: ${document.getElementById('currentTemp').innerText}`, 25, 135);
-    doc.text(`Humidity: ${document.getElementById('currentHumidity').innerText}`, 25, 145);
-    doc.text(`Signal: ${document.getElementById('currentSignal').innerText}`, 25, 155);
-    doc.text(`AI Score: ${document.getElementById('aiScore').innerText}`, 25, 165);
-    doc.text(`System Status: ${document.getElementById('aiHealth').innerText}`, 25, 175);
+    doc.text(`Temperature: ${document.getElementById('currentTemp').innerText}`, 25, 128);
+    doc.text(`Humidity: ${document.getElementById('currentHumidity').innerText}`, 25, 138);
+    doc.text(`Signal: ${document.getElementById('currentSignal').innerText}`, 25, 148);
+    doc.text(`AI Score: ${document.getElementById('aiScore').innerText}`, 25, 158);
+    doc.text(`System Status: ${document.getElementById('aiHealth').innerText}`, 25, 168);
     
     const alertCount = alertHistory.tempAlerts.filter(a => a > 0).length;
-    doc.text(`Total Alerts: ${alertCount}`, 25, 185);
+    doc.text(`Total Alerts: ${alertCount}`, 25, 178);
     
-    // Footer
     const pageCount = doc.internal.getNumberOfPages();
     for(let i = 1; i <= pageCount; i++) {
         doc.setPage(i);
@@ -915,7 +882,7 @@ document.addEventListener('DOMContentLoaded', () => {
         loadSensorData(currentSensorPeriod);
         loadAlertData(currentAlertPeriod);
     }, CONFIG.UPDATE_INTERVAL);
-    console.log('✅ Real-time monitoring with DHT11 Status and Last Update started');
+    console.log('✅ Real-time monitoring started');
 });
 </script>
 </body>
