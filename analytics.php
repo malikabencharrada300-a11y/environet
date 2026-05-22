@@ -147,7 +147,6 @@ $username = $_SESSION['user_name'] ?? 'User';
         </div>
 
         <!-- MAIN CARDS (4 columns) -->
-        <!-- MAIN CARDS (4 columns) -->
         <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-6">
 
             <!-- DEVICE STATUS -->
@@ -171,86 +170,52 @@ $username = $_SESSION['user_name'] ?? 'User';
                     </div>
                 </div>
             </div>
-            <!-- DHT11 SENSOR STATUS -->
-<div class="glass-card rounded-xl shadow-lg p-6">
-    <div class="flex justify-between mb-4">
-        <h2 class="font-bold text-lg text-gray-800">
-            DHT11 Sensor
-        </h2>
 
-        <span id="dhtIcon"
-              class="text-3xl float-animation">
-            🌡️
-        </span>
-    </div>
-
-    <div class="space-y-4">
-
-        <!-- SENSOR STATUS -->
-        <div class="flex items-center space-x-3">
-
-            <div class="w-10 h-10 rounded-full bg-green-100 flex items-center justify-center">
-                <span>📡</span>
-            </div>
-
-            <div>
-                <span class="text-sm text-gray-500">
-                    Sensor State
-                </span>
-
-                <p>
-                    <span id="dhtStatus"
-                          class="font-bold text-lg status-online">
-                        Connected
+            <!-- DHT11 SENSOR STATUS (SANS HUMIDITY) -->
+            <div class="glass-card rounded-xl shadow-lg p-6">
+                <div class="flex justify-between mb-4">
+                    <h2 class="font-bold text-lg text-gray-800">
+                        DHT11 Sensor
+                    </h2>
+                    <span id="dhtIcon" class="text-3xl float-animation">
+                        🌡️
                     </span>
-                </p>
+                </div>
+                <div class="space-y-4">
+                    <!-- SENSOR STATUS -->
+                    <div class="flex items-center space-x-3">
+                        <div class="w-10 h-10 rounded-full bg-green-100 flex items-center justify-center">
+                            <span>📡</span>
+                        </div>
+                        <div>
+                            <span class="text-sm text-gray-500">
+                                Sensor State
+                            </span>
+                            <p>
+                                <span id="dhtStatus" class="font-bold text-lg status-online">
+                                    Connected
+                                </span>
+                            </p>
+                        </div>
+                    </div>
+                    <!-- LAST READING -->
+                    <div class="flex items-center space-x-3">
+                        <div class="w-10 h-10 rounded-full bg-purple-100 flex items-center justify-center">
+                            <span>⏱️</span>
+                        </div>
+                        <div>
+                            <span class="text-sm text-gray-500">
+                                Last Reading
+                            </span>
+                            <p>
+                                <span id="dhtLastReading" class="font-mono text-sm font-bold">
+                                    --:--:--
+                                </span>
+                            </p>
+                        </div>
+                    </div>
+                </div>
             </div>
-        </div>
-
-        <!-- HUMIDITY -->
-        <div class="flex items-center space-x-3">
-
-            <div class="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center">
-                <span>💧</span>
-            </div>
-
-            <div>
-                <span class="text-sm text-gray-500">
-                    Humidity
-                </span>
-
-                <p>
-                    <span id="humidityValue"
-                          class="font-bold text-lg text-blue-600">
-                        --%
-                    </span>
-                </p>
-            </div>
-        </div>
-
-        <!-- LAST READING -->
-        <div class="flex items-center space-x-3">
-
-            <div class="w-10 h-10 rounded-full bg-purple-100 flex items-center justify-center">
-                <span>⏱️</span>
-            </div>
-
-            <div>
-                <span class="text-sm text-gray-500">
-                    Last Reading
-                </span>
-
-                <p>
-                    <span id="dhtLastReading"
-                          class="font-mono text-sm font-bold">
-                        --:--:--
-                    </span>
-                </p>
-            </div>
-        </div>
-
-    </div>
-</div>
 
             <!-- TEMPERATURE ANALYSIS -->
             <div class="glass-card rounded-xl shadow-lg p-6">
@@ -724,51 +689,35 @@ $username = $_SESSION['user_name'] ?? 'User';
                 state.lastUpdate = Date.now();
                 const temp = safeNum(j.data.temperature);
                 const signal = safeNum(j.data.signal_strength);
-                const humidity = safeNum(j.data.humidity);
                 
                 document.getElementById('lastSeen').textContent = new Date().toLocaleTimeString('en-US', { hour:'2-digit', minute:'2-digit', second:'2-digit' });
-                analyzeTemp(temp); analyzeSignal(signal); detectAnomaly(temp, signal);
+                analyzeTemp(temp); 
+                analyzeSignal(signal); 
+                detectAnomaly(temp, signal);
+                
                 // ============================================
-// DHT11 SENSOR STATUS
-// ============================================
+                // DHT11 SENSOR STATUS (SANS HUMIDITY)
+                // ============================================
+                
+                // LAST READING
+                document.getElementById('dhtLastReading').textContent =
+                    new Date().toLocaleTimeString('en-US', {
+                        hour: '2-digit',
+                        minute: '2-digit',
+                        second: '2-digit'
+                    });
 
-// HUMIDITY
-document.getElementById('humidityValue').textContent =
-    humidity.toFixed(1) + '%';
-
-// LAST READING
-document.getElementById('dhtLastReading').textContent =
-    new Date().toLocaleTimeString('en-US', {
-        hour: '2-digit',
-        minute: '2-digit',
-        second: '2-digit'
-    });
-
-// SENSOR STATUS
-const dhtStatus =
-    document.getElementById('dhtStatus');
-
-if ((Date.now() - state.lastUpdate)
-    < CONFIG.OFFLINE_THRESHOLD) {
-
-    dhtStatus.textContent = 'Connected';
-
-    dhtStatus.className =
-        'font-bold text-lg status-online';
-
-    document.getElementById('dhtIcon')
-        .textContent = '🟢';
-
-} else {
-
-    dhtStatus.textContent = 'Disconnected';
-
-    dhtStatus.className =
-        'font-bold text-lg status-offline';
-
-    document.getElementById('dhtIcon')
-        .textContent = '🔴';
-}
+                // SENSOR STATUS
+                const dhtStatus = document.getElementById('dhtStatus');
+                if ((Date.now() - state.lastUpdate) < CONFIG.OFFLINE_THRESHOLD) {
+                    dhtStatus.textContent = 'Connected';
+                    dhtStatus.className = 'font-bold text-lg status-online';
+                    document.getElementById('dhtIcon').textContent = '🟢';
+                } else {
+                    dhtStatus.textContent = 'Disconnected';
+                    dhtStatus.className = 'font-bold text-lg status-offline';
+                    document.getElementById('dhtIcon').textContent = '🔴';
+                }
                 
                 document.getElementById('insightsContainer').innerHTML = `<p><strong>Temp:</strong> ${temp.toFixed(1)}°C ${temp>CONFIG.TEMP_WARNING?'⚠️':'✅'}</p><p><strong>Signal:</strong> ${signal}% ${signal<CONFIG.SIGNAL_WARNING?'⚠️':'✅'}</p>`;
                 document.getElementById('predictionsContainer').innerHTML = `<p>${temp>27?'⚠️ Temperature rising trend':'✅ Temperature stable'}</p><p>${signal<40?'⚠️ Signal degradation possible':'✅ Signal stable'}</p>`;
@@ -801,27 +750,27 @@ if ((Date.now() - state.lastUpdate)
 
                 // Page 1 - Cover
                 doc.setFillColor(15,23,42);
-doc.rect(0, 0, W, H, 'F');
+                doc.rect(0, 0, W, H, 'F');
 
-// logo image
-const logo = new Image();
-logo.src = 'logo.png'; 
+                // logo image
+                const logo = new Image();
+                logo.src = 'logo.png'; 
 
-await new Promise((resolve) => {
-    logo.onload = resolve;
-    logo.onerror = resolve;
-});
+                await new Promise((resolve) => {
+                    logo.onload = resolve;
+                    logo.onerror = resolve;
+                });
 
-if (logo.complete && logo.naturalWidth > 0) {
-    doc.addImage(logo, 'PNG', 25, 28, 28, 28);
-}
+                if (logo.complete && logo.naturalWidth > 0) {
+                    doc.addImage(logo, 'PNG', 25, 28, 28, 28);
+                }
 
-doc.setTextColor(255,255,255);
-doc.setFontSize(26);
-doc.text("ENVIRONET", 65, 48);
+                doc.setTextColor(255,255,255);
+                doc.setFontSize(26);
+                doc.text("ENVIRONET", 65, 48);
 
-doc.setFontSize(18);
-doc.text("SMART MONITORING REPORT", 50, 68);
+                doc.setFontSize(18);
+                doc.text("SMART MONITORING REPORT", 50, 68);
                 // Generate QR Code
                 const qrDiv = document.createElement('div');
                 new QRCode(qrDiv, { text: window.location.href, width:100, height:100 });
@@ -841,34 +790,33 @@ doc.text("SMART MONITORING REPORT", 50, 68);
                 doc.setFontSize(14); doc.setTextColor(0); doc.text("AI Gauge",15,y);
                 const cx=60, cy=y+35, rad=25;
                 for(let f = 0; f < 5; f++) {
+                    if(f > 0){
+                        doc.setFillColor(255,255,255);
+                        doc.rect(30, y+5, 60, 60, 'F');
+                    }
 
-    if(f > 0){
-        doc.setFillColor(255,255,255);
-        doc.rect(30, y+5, 60, 60, 'F');
-    }
+                    doc.setDrawColor(220);
+                    doc.setLineWidth(2);
+                    doc.circle(cx, cy, rad);
 
-    doc.setDrawColor(220);
-    doc.setLineWidth(2);
-    doc.circle(cx, cy, rad);
+                    const angle = (sn * 1.8 * (f + 1) / 5) - 90;
+                    const radA = angle * Math.PI / 180;
 
-    const angle = (sn * 1.8 * (f + 1) / 5) - 90;
-    const radA = angle * Math.PI / 180;
+                    doc.setDrawColor(...(sn > 70 ? [34,197,94] : sn > 40 ? [245,158,11] : [220,38,38]));
+                    doc.setLineWidth(2);
 
-    doc.setDrawColor(...(sn > 70 ? [34,197,94] : sn > 40 ? [245,158,11] : [220,38,38]));
-    doc.setLineWidth(2);
+                    doc.line(
+                        cx,
+                        cy,
+                        cx + rad * Math.cos(radA),
+                        cy + rad * Math.sin(radA)
+                    );
 
-    doc.line(
-        cx,
-        cy,
-        cx + rad * Math.cos(radA),
-        cy + rad * Math.sin(radA)
-    );
+                    doc.setFontSize(16);
+                    doc.text(ai, cx - 7, cy + 8);
 
-    doc.setFontSize(16);
-    doc.text(ai, cx - 7, cy + 8);
-
-    await new Promise(r => setTimeout(r, 30));
-}
+                    await new Promise(r => setTimeout(r, 30));
+                }
 
                 // Page 3 - Charts
                 doc.addPage(); addHeader("Analytics Charts"); y=28;
