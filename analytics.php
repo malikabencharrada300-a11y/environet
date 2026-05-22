@@ -708,6 +708,27 @@ $username = $_SESSION['user_name'] ?? 'User';
             document.getElementById('anomalyText').textContent = anomaly;
             document.getElementById('anomalyText').className = `text-2xl font-bold ${cls}`;
         }
+        function getTrend(arr) {
+
+    if (arr.length < 5) {
+        return 'stable';
+    }
+
+    const first = arr[0];
+    const last = arr[arr.length - 1];
+
+    const diff = last - first;
+
+    if (diff > 2) {
+        return 'rising';
+    }
+
+    if (diff < -2) {
+        return 'falling';
+    }
+
+    return 'stable';
+}
 
         function analyzeTemp(temp) {
             document.getElementById('currentTemp').textContent = temp.toFixed(1) + '°C';
@@ -742,53 +763,305 @@ $username = $_SESSION['user_name'] ?? 'User';
             const m = Math.floor(sec/60), h = Math.floor(m/60);
             document.getElementById('uptime').textContent = h>0 ? `${h}h ${m%60}m` : m>0 ? `${m}m ${sec%60}s` : `${sec}s`;
         }
+        function setOfflineUI() {
 
-        async function loadAnalytics() {
-            try {
-                const r = await fetch(`get_latest_data.php?user_id=<?= $user_id ?>`);
-                const j = await r.json();
-                if (!j.success || !j.data) return;
-                
-                state.lastUpdate = Date.now();
-                const temp = safeNum(j.data.temperature);
-                const signal = safeNum(j.data.signal_strength);
-                
-                document.getElementById('lastSeen').textContent = new Date().toLocaleTimeString('en-US', { hour:'2-digit', minute:'2-digit', second:'2-digit' });
-                analyzeTemp(temp); 
-                analyzeSignal(signal); 
-                detectAnomaly(temp, signal);
-                
-                // ============================================
-                // DHT11 SENSOR STATUS (SANS HUMIDITY)
-                // ============================================
-                
-                // LAST READING
-                document.getElementById('dhtLastReading').textContent =
-                    new Date().toLocaleTimeString('en-US', {
-                        hour: '2-digit',
-                        minute: '2-digit',
-                        second: '2-digit'
-                    });
+    // TEMP
 
-                // SENSOR STATUS
-                const dhtStatus = document.getElementById('dhtStatus');
-                if ((Date.now() - state.lastUpdate) < CONFIG.OFFLINE_THRESHOLD) {
-                    dhtStatus.textContent = 'Connected';
-                    dhtStatus.className = 'font-bold text-lg status-online';
-                    document.getElementById('dhtIcon').textContent = '🟢';
-                } else {
-                    dhtStatus.textContent = 'Disconnected';
-                    dhtStatus.className = 'font-bold text-lg status-offline';
-                    document.getElementById('dhtIcon').textContent = '🔴';
-                }
-                
-                document.getElementById('insightsContainer').innerHTML = `<p><strong>Temp:</strong> ${temp.toFixed(1)}°C ${temp>CONFIG.TEMP_WARNING?'⚠️':'✅'}</p><p><strong>Signal:</strong> ${signal}% ${signal<CONFIG.SIGNAL_WARNING?'⚠️':'✅'}</p>`;
-                document.getElementById('predictionsContainer').innerHTML = `<p>${temp>27?'⚠️ Temperature rising trend':'✅ Temperature stable'}</p><p>${signal<40?'⚠️ Signal degradation possible':'✅ Signal stable'}</p>`;
-                document.getElementById('recommendationsContainer').innerHTML = `<p>${temp>CONFIG.TEMP_WARNING?'🌡️ Monitor temperature':'✅ Temperature normal'}</p><p>${signal<CONFIG.SIGNAL_WARNING?'📶 Check network':'✅ Network optimal'}</p>`;
-                
-                updateAlertChartData();
-            } catch (e) { console.error("Error:", e); }
+    document.getElementById('currentTemp')
+        .textContent = '--°C';
+
+    document.getElementById('tempTrend')
+        .textContent = 'Offline';
+
+    document.getElementById('tempTrend')
+        .className =
+        'font-bold px-3 py-1 rounded-full text-sm bg-red-100 text-red-700';
+
+    document.getElementById('tempIcon')
+        .textContent = '🔴';
+
+    // SIGNAL
+
+    document.getElementById('currentSignal')
+        .textContent = '--%';
+
+    document.getElementById('signalTrend')
+        .textContent = 'Offline';
+
+    document.getElementById('signalTrend')
+        .className =
+        'font-bold px-3 py-1 rounded-full text-sm bg-red-100 text-red-700';
+
+    document.getElementById('signalIcon')
+        .textContent = '🔴';
+
+    // AI
+
+    document.getElementById('insightsContainer')
+        .innerHTML =
+        '<p class="text-red-500">Device offline</p>';
+
+    document.getElementById('predictionsContainer')
+        .innerHTML =
+        '<p class="text-red-500">No prediction available</p>';
+
+    document.getElementById('recommendationsContainer')
+        .innerHTML =
+        '<p class="text-red-500">Reconnect device</p>';
+
+    document.getElementById('anomalyText')
+        .textContent = 'Offline';
+
+    document.getElementById('anomalyText')
+        .className =
+        'text-2xl font-bold text-red-600';
+}
+
+     async function loadAnalytics() {
+
+    try {
+
+        const r = await fetch(
+            `get_latest_data.php?user_id=<?= $user_id ?>`
+        );
+
+        const j = await r.json();
+
+        // CHECK RESPONSE
+
+        if (!j.success || !j.data) {
+
+            setOfflineUI();
+
+            return;
         }
+
+        // REAL TIMESTAMP FROM DATABASE
+
+        const createdAt =
+            new Date(j.data.created_at).getTime();
+
+        const now = Date.now();
+
+        const diff = now - createdAt;
+
+        // ============================================
+        // DEVICE OFFLINE
+        // ============================================
+
+        if (diff > CONFIG.OFFLINE_THRESHOLD) {
+
+            document.getElementById('deviceStatus')
+                .textContent = 'Offline';
+
+            document.getElementById('deviceStatus')
+                .className =
+                'font-bold text-lg status-offline';
+
+            document.getElementById('dhtStatus')
+                .textContent = 'Disconnected';
+
+            document.getElementById('dhtStatus')
+                .className =
+                'font-bold text-lg status-offline';
+
+            document.getElementById('dhtIcon')
+                .textContent = '🔴';
+
+            document.getElementById('liveStatusText')
+                .textContent = 'Offline';
+
+            document.getElementById('liveStatusText')
+                .className = 'text-red-600';
+
+            setOfflineUI();
+
+            return;
+        }
+
+        // ============================================
+        // DEVICE ONLINE
+        // ============================================
+
+        document.getElementById('deviceStatus')
+            .textContent = 'Online';
+
+        document.getElementById('deviceStatus')
+            .className =
+            'font-bold text-lg status-online';
+
+        document.getElementById('dhtStatus')
+            .textContent = 'Connected';
+
+        document.getElementById('dhtStatus')
+            .className =
+            'font-bold text-lg status-online';
+
+        document.getElementById('dhtIcon')
+            .textContent = '🟢';
+
+        document.getElementById('liveStatusText')
+            .textContent = 'Real-time';
+
+        document.getElementById('liveStatusText')
+            .className = 'text-green-700';
+
+        // SAVE REAL LAST UPDATE
+
+        state.lastUpdate = createdAt;
+
+        // ============================================
+        // SENSOR VALUES
+        // ============================================
+
+        const temp =
+            safeNum(j.data.temperature);
+
+        const signal =
+            safeNum(j.data.signal_strength);
+
+        // ============================================
+        // LAST SEEN (REAL)
+        // ============================================
+
+        document.getElementById('lastSeen')
+            .textContent =
+            new Date(j.data.created_at)
+            .toLocaleTimeString('en-US', {
+                hour: '2-digit',
+                minute: '2-digit',
+                second: '2-digit'
+            });
+
+        // ============================================
+        // DHT LAST READING
+        // ============================================
+
+        document.getElementById('dhtLastReading')
+            .textContent =
+            new Date(j.data.created_at)
+            .toLocaleTimeString('en-US', {
+                hour: '2-digit',
+                minute: '2-digit',
+                second: '2-digit'
+            });
+
+        // ============================================
+        // ANALYTICS
+        // ============================================
+
+        analyzeTemp(temp);
+
+        analyzeSignal(signal);
+state.temperatureHistory.push(temp);
+state.signalHistory.push(signal);
+
+if (state.temperatureHistory.length > 20) {
+    state.temperatureHistory.shift();
+}
+
+if (state.signalHistory.length > 20) {
+    state.signalHistory.shift();
+}
+        detectAnomaly(temp, signal);
+
+        // ============================================
+        // AI / INSIGHTS
+        // ============================================
+
+       const tempTrendAI =
+    getTrend(state.temperatureHistory);
+
+const signalTrendAI =
+    getTrend(state.signalHistory);
+
+let insightHTML = '';
+
+if (tempTrendAI === 'rising') {
+
+    insightHTML += `
+    <p>🔥 Temperature increasing continuously</p>
+    `;
+
+} else if (tempTrendAI === 'falling') {
+
+    insightHTML += `
+    <p>❄️ Temperature decreasing</p>
+    `;
+
+} else {
+
+    insightHTML += `
+    <p>✅ Temperature stable</p>
+    `;
+}
+
+if (signalTrendAI === 'falling') {
+
+    insightHTML += `
+    <p>📶 Signal quality dropping</p>
+    `;
+
+} else {
+
+    insightHTML += `
+    <p>✅ Network stable</p>
+    `;
+}
+
+document.getElementById('insightsContainer')
+.innerHTML = insightHTML;
+
+        document.getElementById('predictionsContainer')
+            .innerHTML =
+            `
+            <p>
+                ${temp > 27
+                    ? '⚠️ Temperature rising trend'
+                    : '✅ Temperature stable'}
+            </p>
+
+            <p>
+                ${signal < 40
+                    ? '⚠️ Signal degradation possible'
+                    : '✅ Signal stable'}
+            </p>
+            `;
+
+        document.getElementById('recommendationsContainer')
+            .innerHTML =
+            `
+            <p>
+                ${temp > CONFIG.TEMP_WARNING
+                    ? '🌡️ Monitor temperature'
+                    : '✅ Temperature normal'}
+            </p>
+
+            <p>
+                ${signal < CONFIG.SIGNAL_WARNING
+                    ? '📶 Check network'
+                    : '✅ Network optimal'}
+            </p>
+            `;
+
+        // ============================================
+        // UPDATE ALERTS
+        // ============================================
+
+        updateAlertChartData();
+
+    }
+
+    catch (e) {
+
+        console.error(
+            "Analytics Error:",
+            e
+        );
+
+        setOfflineUI();
+    }
+}
 
         async function generatePDFReport() {
             const ld = document.getElementById('pdfLoading');
