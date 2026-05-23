@@ -142,9 +142,6 @@ body {
             <a href="dashboard.php" class="bg-blue-600 text-white px-5 py-2 rounded-lg btn-primary flex items-center gap-2">
                 ← Dashboard
             </a>
-            <button onclick="generatePDF()" class="bg-purple-700 text-white px-5 py-2 rounded-lg btn-primary flex items-center gap-2">
-                📄 PDF Report
-            </button>
         </div>
     </div>
 
