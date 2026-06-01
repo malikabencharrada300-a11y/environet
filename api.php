@@ -211,7 +211,7 @@ elseif ($action === "sensor") {
             temperature,
             humidity,
             timestamp
-        FROM sensor_data
+        FROM esp32_cam_data
         ORDER BY id DESC
         LIMIT 1
     ");
@@ -519,7 +519,7 @@ elseif ($action === "last_update") {
 
     $stmt = $pdo->prepare("
         SELECT timestamp
-        FROM sensor_data
+        FROM esp32_cam_data
         ORDER BY id DESC
         LIMIT 1
     ");
@@ -651,49 +651,7 @@ elseif ($action === "insertSensor") {
         response("error", "Insert failed");
     }
 }
-// =====================================================
-// NETWORK DATA
-// =====================================================
-elseif ($action === "network") {
 
-    $stmt = $pdo->prepare("
-        SELECT
-            ssid,
-            ip_address,
-            mac_address,
-            signal_strength,
-            bandwidth,
-            ping,
-            timestamp
-        FROM esp32_cam_data
-        ORDER BY id DESC
-        LIMIT 1
-    ");
-
-    $stmt->execute();
-
-    $data = $stmt->fetch(PDO::FETCH_ASSOC);
-
-    if ($data) {
-
-        response("success", "Network data loaded", [
-            "ssid" => $data["ssid"],
-            "ip_address" => $data["ip_address"],
-            "mac_address" => $data["mac_address"],
-
-            // IMPORTANT
-            "rssi" => intval($data["signal_strength"]),
-
-            "bandwidth" => floatval($data["bandwidth"]),
-            "ping" => intval($data["ping"]),
-            "timestamp" => $data["timestamp"]
-        ]);
-
-    } else {
-
-        response("error", "No network data found");
-    }
-}
 
 //
 // ================= INVALID =================
