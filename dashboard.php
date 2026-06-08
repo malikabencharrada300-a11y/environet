@@ -1844,7 +1844,7 @@ function checkAndGenerateAlerts(temp, hum, signal) {
 
 // ===== FONCTIONS DE NOTIFICATION =====
 
-//function showNotification(type, title, message, location) {
+function showNotification(type, title, message, location) {
     const container = document.getElementById('notificationContainer');
     if(!container) return;
     
